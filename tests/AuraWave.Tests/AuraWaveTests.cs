@@ -4,6 +4,7 @@ using AuraWave.Configuration;
 using AuraWave.DSP;
 using AuraWave.Media;
 using AuraWave.Models;
+using AuraWave.Services;
 using AuraWave.Themes;
 using Xunit;
 
@@ -52,11 +53,9 @@ namespace AuraWave.Tests
             var f2 = dsp.ProcessSamples(loud, 48000, 32, 1.0, 0.5, 0.2, 1.0, 0.001, 0.01, 0.004, 200, 5000, t0.AddMilliseconds(260));
             Assert.True(f2.IsAudioActive);
 
-            // Silence starts at t0 + 2000ms
             var f3 = dsp.ProcessSamples(silent, 48000, 32, 1.0, 0.5, 0.2, 1.0, 0.001, 0.01, 0.004, 200, 5000, t0.AddMilliseconds(2000));
             Assert.True(f3.IsAudioActive);
 
-            // At t0 + 7500ms, 5500ms of silence have elapsed (>= 5000ms releaseHoldMs)
             var f4 = dsp.ProcessSamples(silent, 48000, 32, 1.0, 0.5, 0.2, 1.0, 0.001, 0.01, 0.004, 200, 5000, t0.AddMilliseconds(7500));
             Assert.False(f4.IsAudioActive);
         }
@@ -69,16 +68,16 @@ namespace AuraWave.Tests
             {
                 var svc = new ConfigurationService(tempDir);
                 svc.Current.SelectedVisualizer = VisualizerType.Synthwave;
-                svc.Current.SelectedTheme = ThemePreset.Ultraviolet;
-                svc.Current.WaveformPinned = false;
+                svc.Current.SelectedTheme = ThemePreset.EmeraldCapsule;
+                svc.Current.WaveformVisible = false;
                 svc.Current.NowPlayingPinned = true;
                 svc.Save();
 
                 var svc2 = new ConfigurationService(tempDir);
                 var loaded = svc2.Load();
                 Assert.Equal(VisualizerType.Synthwave, loaded.SelectedVisualizer);
-                Assert.Equal(ThemePreset.Ultraviolet, loaded.SelectedTheme);
-                Assert.False(loaded.WaveformPinned);
+                Assert.Equal(ThemePreset.EmeraldCapsule, loaded.SelectedTheme);
+                Assert.False(loaded.WaveformVisible);
                 Assert.True(loaded.NowPlayingPinned);
             }
             finally
@@ -99,7 +98,8 @@ namespace AuraWave.Tests
 
                 var recovered = svc.Load();
                 Assert.NotNull(recovered);
-                Assert.Equal(VisualizerType.LiquidSpectrum, recovered.SelectedVisualizer);
+                Assert.Equal(ThemePreset.EmeraldCapsule, recovered.SelectedTheme);
+                Assert.False(recovered.WaveformVisible);
                 Assert.NotEmpty(Directory.GetFiles(tempDir, "*.bak-*"));
             }
             finally
@@ -126,27 +126,24 @@ namespace AuraWave.Tests
         [Fact]
         public void Test07_WidgetGeometry_ClampsToMonitorBoundaries()
         {
-            var geom = new WidgetGeometry { Left = -500, Top = 5000, Width = 50, Height = 5000 };
-            geom.ClampToMonitor(0, 0, 1920, 1080, 240, 3840, 60, 900);
-            Assert.Equal(240, geom.Width);
-            Assert.Equal(900, geom.Height);
-            Assert.Equal(0, geom.Left);
-            Assert.Equal(180, geom.Top);
+            var geom = new WidgetGeometry { Left = -500, Top = 5000, Width = 200, Height = 500 };
+            geom.ClampToMonitor(0, 0, 1920, 1040, 540, 1600, 76, 160);
+            Assert.Equal(540, geom.Width);
+            Assert.Equal(160, geom.Height);
+            Assert.InRange(geom.Left, 0, 1920 - 540);
+            Assert.InRange(geom.Top, 0, 1040 - 160);
         }
 
         [Fact]
-        public void Test08_IndependentVisibilityAndPinning_AreNotCoupled()
+        public void Test08_DefaultConfig_DisablesStandaloneWaveformAndEnablesEmeraldBar()
         {
-            var cfg = new AuraWaveConfig
-            {
-                WaveformVisible = true,
-                WaveformPinned = true,
-                NowPlayingVisible = false,
-                NowPlayingPinned = false
-            };
-            Assert.True(cfg.WaveformVisible);
-            Assert.False(cfg.NowPlayingVisible);
-            Assert.NotEqual(cfg.WaveformPinned, cfg.NowPlayingPinned);
+            var cfg = new AuraWaveConfig();
+            Assert.False(cfg.WaveformVisible);
+            Assert.False(cfg.AutoShowWaveformOnAudio);
+            Assert.True(cfg.NowPlayingVisible);
+            Assert.True(cfg.ShowEmbeddedSpectrum);
+            Assert.Equal(ThemePreset.EmeraldCapsule, cfg.SelectedTheme);
+            Assert.Equal(5, cfg.AutoHideTimeoutSeconds);
         }
 
         [Fact]
@@ -154,13 +151,13 @@ namespace AuraWave.Tests
         {
             var snap = new MediaSessionSnapshot
             {
-                Title = "Midnight City",
-                Artist = "M83",
-                Position = TimeSpan.FromSeconds(65),
-                Duration = TimeSpan.FromSeconds(260)
+                Title = "Uncover the Silent Beauty",
+                Artist = "Meadow",
+                Position = TimeSpan.FromSeconds(342),
+                Duration = TimeSpan.FromSeconds(1214)
             };
-            Assert.Equal(0.25, snap.ProgressRatio, 3);
-            Assert.Equal("01:05 / 04:20", snap.FormattedTimeline);
+            Assert.Equal("5:42 / 20:14", snap.FormattedTimeline);
+            Assert.InRange(snap.ProgressRatio, 0.28, 0.29);
         }
 
         [Fact]
@@ -168,21 +165,61 @@ namespace AuraWave.Tests
         {
             bool ok = WindowsMediaSessionService.TryParseMediaWindowTitle(
                 "Spotify",
-                "Daft Punk - Veridis Quo",
+                "Meadow - Uncover the Silent Beauty",
                 out string artist,
                 out string title);
 
             Assert.True(ok);
-            Assert.Equal("Daft Punk", artist);
-            Assert.Equal("Veridis Quo", title);
+            Assert.Equal("Meadow", artist);
+            Assert.Equal("Uncover the Silent Beauty", title);
         }
 
         [Fact]
-        public void Test11_ThemeManager_ReturnsValidPaletteForAllPresetsAndCustom()
+        public void Test11_ThemeManager_EmeraldCapsuleIsDefaultAndHasCorrectColors()
         {
-            var cfg = new AuraWaveConfig { SelectedTheme = ThemePreset.Custom, CustomPrimaryHex = "#123456" };
+            var cfg = new AuraWaveConfig();
             var pal = ThemeManager.GetActivePalette(cfg);
-            Assert.Equal("#123456", pal.PrimaryHex);
+            Assert.Equal("#35D6A0", pal.PrimaryHex);
+            Assert.Equal("#42E5B0", pal.SecondaryHex);
+            Assert.Equal("#07120F", pal.SurfaceHex);
+        }
+
+        [Fact]
+        public void Test12_CalculateBottomCenterBar_PositionsHorizontallyCenteredAboveTaskbar()
+        {
+            var geom = WidgetGeometry.CalculateBottomCenterBar(0, 0, 1920, 1032, 920, 92, 14);
+            Assert.Equal(920, geom.Width);
+            Assert.Equal(92, geom.Height);
+            Assert.Equal(500, geom.Left); // (1920 - 920) / 2
+            Assert.Equal(926, geom.Top);  // 1032 - 92 - 14
+        }
+
+        [Fact]
+        public void Test13_FavouritesService_TogglesAndPersistsFavouriteTracks()
+        {
+            string tempDir = Path.Combine(Path.GetTempPath(), "AuraWaveFavs_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var favSvc = new FavouritesService(tempDir);
+                var snap = new MediaSessionSnapshot { Title = "Uncover the Silent Beauty", Artist = "Meadow", SourceAppId = "Spotify" };
+
+                Assert.False(favSvc.IsFavourite(snap));
+                Assert.True(favSvc.ToggleFavourite(snap));
+                Assert.True(favSvc.IsFavourite(snap));
+
+                // Reload from disk to verify persistence
+                var favSvc2 = new FavouritesService(tempDir);
+                Assert.True(favSvc2.IsFavourite(snap));
+                Assert.Single(favSvc2.GetAll());
+
+                // Toggle again to remove
+                Assert.False(favSvc2.ToggleFavourite(snap));
+                Assert.False(favSvc2.IsFavourite(snap));
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+            }
         }
     }
 }

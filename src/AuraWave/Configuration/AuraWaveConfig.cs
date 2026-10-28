@@ -9,88 +9,92 @@ namespace AuraWave.Configuration
 {
     public sealed class AuraWaveConfig
     {
-        // Appearance
-        public ThemePreset SelectedTheme { get; set; } = ThemePreset.ArcticPulse;
-        public string CustomPrimaryHex { get; set; } = "#00F2FE";
-        public string CustomSecondaryHex { get; set; } = "#4FACFE";
-        public string CustomAccentHex { get; set; } = "#FF2E93";
-        public string CustomPeakHex { get; set; } = "#FFFFFF";
-        public double VisualizerIntensity { get; set; } = 1.0;
-        public double GlowIntensity { get; set; } = 0.65;
+        public int ConfigSchemaVersion { get; set; } = 2;
+
+        // Appearance (Defaults to Emerald Capsule)
+        public ThemePreset SelectedTheme { get; set; } = ThemePreset.EmeraldCapsule;
+        public string CustomPrimaryHex { get; set; } = "#35D6A0";
+        public string CustomSecondaryHex { get; set; } = "#42E5B0";
+        public string CustomAccentHex { get; set; } = "#087F62";
+        public string CustomPeakHex { get; set; } = "#A7F3D0";
+        public double VisualizerIntensity { get; set; } = 1.05;
+        public double GlowIntensity { get; set; } = 0.45;
         public double UiScale { get; set; } = 1.0;
         public double WaveformThickness { get; set; } = 2.5;
-        public double NowPlayingSurfaceOpacity { get; set; } = 0.88;
+        public double NowPlayingSurfaceOpacity { get; set; } = 0.94;
         public bool EnableNowPlayingGlass { get; set; } = true;
         public double AnimationIntensity { get; set; } = 1.0;
-        public bool EnableParticles { get; set; } = true;
-        public bool EnableReflection { get; set; } = true;
-        public bool EnableSecondaryWaveform { get; set; } = true;
+        public bool EnableParticles { get; set; } = false;
+        public bool EnableReflection { get; set; } = false;
+        public bool EnableSecondaryWaveform { get; set; } = false;
 
         // Visualizer
         public VisualizerType SelectedVisualizer { get; set; } = VisualizerType.LiquidSpectrum;
-        public int FrequencyBandCount { get; set; } = 48;
+        public int FrequencyBandCount { get; set; } = 32;
         public bool SymmetricSpectrum { get; set; } = false;
-        public double AudioSensitivity { get; set; } = 1.25;
-        public double SmoothingFactor { get; set; } = 0.68;
-        public bool ShowPeakIndicators { get; set; } = true;
+        public double AudioSensitivity { get; set; } = 1.30;
+        public double SmoothingFactor { get; set; } = 0.65;
+        public bool ShowPeakIndicators { get; set; } = false;
         public double PeakDecayRate { get; set; } = 0.18;
-        public double BassResponseBoost { get; set; } = 1.15;
-        public int ParticleCount { get; set; } = 42;
+        public double BassResponseBoost { get; set; } = 1.20;
+        public int ParticleCount { get; set; } = 32;
 
         // Audio
         public string SelectedAudioDeviceId { get; set; } = string.Empty;
-        public double ActivityAttackThreshold { get; set; } = 0.008;
-        public double ActivityReleaseThreshold { get; set; } = 0.0035;
-        public double NoiseFloorThreshold { get; set; } = 0.002;
-        public int AttackHoldMilliseconds { get; set; } = 150;
+        public double ActivityAttackThreshold { get; set; } = 0.006;
+        public double ActivityReleaseThreshold { get; set; } = 0.0025;
+        public double NoiseFloorThreshold { get; set; } = 0.0015;
+        public int AttackHoldMilliseconds { get; set; } = 120;
 
         // Window & Layout
         public PresentationMode PresentationMode { get; set; } = PresentationMode.AlwaysOnTopOverlay;
         public PlacementPreset WaveformPlacementPreset { get; set; } = PlacementPreset.BottomCenter;
         public bool AlwaysOnTop { get; set; } = true;
-        public bool ClickThroughEnabled { get; set; } = true;
+        public bool ClickThroughEnabled { get; set; } = false;
         public bool LinkWidgetMovement { get; set; } = false;
         public bool RememberPlacement { get; set; } = true;
-        public EditableComponent SelectedEditComponent { get; set; } = EditableComponent.Waveform;
+        public EditableComponent SelectedEditComponent { get; set; } = EditableComponent.NowPlaying;
 
-        // Independent Waveform State
-        public bool WaveformVisible { get; set; } = true;
-        public bool WaveformPinned { get; set; } = true;
+        // Standalone Waveform State (DISABLED by default per target specification)
+        public bool WaveformVisible { get; set; } = false;
+        public bool WaveformPinned { get; set; } = false;
         public WidgetGeometry WaveformGeometry { get; set; } = new WidgetGeometry
         {
-            Left = 360,
-            Top = 820,
+            Left = -1,
+            Top = -1,
             Width = 760,
-            Height = 140
+            Height = 120
         };
 
-        // Independent Now Playing State
+        // Primary Integrated Emerald Music Bar State
         public bool NowPlayingVisible { get; set; } = true;
-        public bool NowPlayingPinned { get; set; } = false;
+        public bool NowPlayingPinned { get; set; } = true;
         public WidgetGeometry NowPlayingGeometry { get; set; } = new WidgetGeometry
         {
-            Left = 520,
-            Top = 690,
-            Width = 440,
-            Height = 112
+            Left = -1,
+            Top = -1,
+            Width = 920,
+            Height = 92
         };
         public bool ShowAlbumArt { get; set; } = true;
         public bool EnableRotatingDisc { get; set; } = true;
         public bool ShowTrackTitle { get; set; } = true;
         public bool ShowArtistName { get; set; } = true;
+        public bool ShowEmbeddedSpectrum { get; set; } = true;
         public bool ShowProgressBar { get; set; } = true;
         public bool ShowPlayPauseControl { get; set; } = true;
         public bool ShowVolumeControl { get; set; } = true;
         public bool ShowPrevNextControls { get; set; } = true;
+        public bool CompactBarMode { get; set; } = false;
         public int AutoHideTimeoutSeconds { get; set; } = 5;
         public bool EnableNowPlayingAutoHide { get; set; } = true;
 
         // Automation & Startup
         public bool StartWithWindows { get; set; } = false;
-        public bool AutoShowWaveformOnAudio { get; set; } = true;
+        public bool AutoShowWaveformOnAudio { get; set; } = false;
         public bool AutoShowNowPlayingOnAudio { get; set; } = true;
-        public bool AutoHideWhenAudioStops { get; set; } = true;
-        public int AudioStopInactivityDelaySeconds { get; set; } = 6;
+        public bool AutoHideWhenAudioStops { get; set; } = false;
+        public int AudioStopInactivityDelaySeconds { get; set; } = 5;
         public bool RestorePreviousStateOnStartup { get; set; } = true;
         public bool RunInBackgroundWhenHidden { get; set; } = true;
         public bool MinimizeToTrayOnClose { get; set; } = true;
@@ -101,7 +105,7 @@ namespace AuraWave.Configuration
             GlowIntensity = Math.Clamp(GlowIntensity, 0.0, 1.0);
             UiScale = Math.Clamp(UiScale, 0.6, 2.0);
             WaveformThickness = Math.Clamp(WaveformThickness, 1.0, 8.0);
-            NowPlayingSurfaceOpacity = Math.Clamp(NowPlayingSurfaceOpacity, 0.2, 1.0);
+            NowPlayingSurfaceOpacity = Math.Clamp(NowPlayingSurfaceOpacity, 0.35, 1.0);
             AnimationIntensity = Math.Clamp(AnimationIntensity, 0.1, 2.0);
             FrequencyBandCount = Math.Clamp(FrequencyBandCount, 16, 128);
             AudioSensitivity = Math.Clamp(AudioSensitivity, 0.2, 5.0);
@@ -115,13 +119,13 @@ namespace AuraWave.Configuration
             AutoHideTimeoutSeconds = Math.Clamp(AutoHideTimeoutSeconds, 2, 60);
             AudioStopInactivityDelaySeconds = Math.Clamp(AudioStopInactivityDelaySeconds, 2, 120);
 
-            WaveformGeometry ??= new WidgetGeometry { Left = 360, Top = 820, Width = 760, Height = 140 };
-            NowPlayingGeometry ??= new WidgetGeometry { Left = 520, Top = 690, Width = 440, Height = 112 };
+            WaveformGeometry ??= new WidgetGeometry { Left = -1, Top = -1, Width = 760, Height = 120 };
+            NowPlayingGeometry ??= new WidgetGeometry { Left = -1, Top = -1, Width = 920, Height = 92 };
 
             WaveformGeometry.Width = Math.Clamp(WaveformGeometry.Width, 240, 3840);
             WaveformGeometry.Height = Math.Clamp(WaveformGeometry.Height, 60, 900);
-            NowPlayingGeometry.Width = Math.Clamp(NowPlayingGeometry.Width, 280, 960);
-            NowPlayingGeometry.Height = Math.Clamp(NowPlayingGeometry.Height, 84, 320);
+            NowPlayingGeometry.Width = Math.Clamp(NowPlayingGeometry.Width, 540, 1600);
+            NowPlayingGeometry.Height = Math.Clamp(NowPlayingGeometry.Height, 76, 160);
         }
     }
 
@@ -135,6 +139,7 @@ namespace AuraWave.Configuration
         public event EventHandler<AuraWaveConfig>? ConfigurationChanged;
 
         public string ConfigFilePath => _configPath;
+        public string ConfigDirectory => _configDir;
 
         public ConfigurationService(string? customDirectory = null)
         {
@@ -174,8 +179,20 @@ namespace AuraWave.Configuration
                     if (loaded == null)
                         throw new InvalidDataException("Deserialized configuration was null.");
 
+                    // Migrate v1 configs (which had blue standalone waveform enabled) to v2 Emerald Single Bar
+                    if (loaded.ConfigSchemaVersion < 2)
+                    {
+                        loaded.ConfigSchemaVersion = 2;
+                        loaded.WaveformVisible = false;
+                        loaded.AutoShowWaveformOnAudio = false;
+                        loaded.SelectedTheme = ThemePreset.EmeraldCapsule;
+                        loaded.NowPlayingVisible = true;
+                        loaded.NowPlayingGeometry = new WidgetGeometry { Left = -1, Top = -1, Width = 920, Height = 92 };
+                    }
+
                     loaded.ValidateAndClamp();
                     Current = loaded;
+                    SaveInternal(Current);
                     return Current;
                 }
                 catch (Exception ex)

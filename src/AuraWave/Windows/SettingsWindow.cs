@@ -17,37 +17,40 @@ namespace AuraWave.Windows
         private readonly WasapiLoopbackEngine _audioEngine;
         private readonly WindowsMediaSessionService _mediaService;
         private readonly Action _applyLiveSettingsCallback;
+        private readonly Action _resetPositionCallback;
         private readonly ContentControl _sectionHost;
 
         public SettingsWindow(
             ConfigurationService configService,
             WasapiLoopbackEngine audioEngine,
             WindowsMediaSessionService mediaService,
-            Action applyLiveSettingsCallback)
+            Action applyLiveSettingsCallback,
+            Action resetPositionCallback)
         {
             _configService = configService;
             _audioEngine = audioEngine;
             _mediaService = mediaService;
             _applyLiveSettingsCallback = applyLiveSettingsCallback;
+            _resetPositionCallback = resetPositionCallback;
 
-            Title = "AuraWave â€” Complete Settings & Companion Studio";
-            Width = 980;
-            Height = 680;
+            Title = "AuraWave — Emerald Floating Music Bar Settings";
+            Width = 960;
+            Height = 660;
             MinWidth = 760;
             MinHeight = 520;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             ResizeMode = ResizeMode.CanResize;
-            Background = new SolidColorBrush(Color.FromRgb(10, 15, 28));
+            Background = new SolidColorBrush(Color.FromRgb(7, 18, 15));
             Foreground = Brushes.White;
 
             var mainGrid = new Grid();
-            mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(230) });
+            mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(235) });
             mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             var navBorder = new Border
             {
-                Background = new SolidColorBrush(Color.FromRgb(15, 23, 42)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(30, 41, 59)),
+                Background = new SolidColorBrush(Color.FromRgb(11, 27, 22)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(90, 53, 214, 160)),
                 BorderThickness = new Thickness(0, 0, 1, 0),
                 Padding = new Thickness(16)
             };
@@ -58,14 +61,14 @@ namespace AuraWave.Windows
                 Text = "AURAWAVE",
                 FontSize = 20,
                 FontWeight = FontWeights.ExtraBold,
-                Foreground = new SolidColorBrush(Color.FromRgb(0, 242, 254)),
+                Foreground = new SolidColorBrush(Color.FromRgb(53, 214, 160)),
                 Margin = new Thickness(4, 4, 0, 2)
             });
             navStack.Children.Add(new TextBlock
             {
-                Text = "Desktop Audio Companion",
+                Text = "Emerald Floating Music Bar",
                 FontSize = 11,
-                Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+                Foreground = new SolidColorBrush(Color.FromRgb(145, 164, 158)),
                 Margin = new Thickness(4, 0, 0, 18)
             });
 
@@ -73,13 +76,13 @@ namespace AuraWave.Windows
 
             string[] sections = new[]
             {
-                "1. Appearance",
-                "2. Visualizers",
-                "3. Audio Engine",
-                "4. Window & Layout",
-                "5. Now Playing",
-                "6. Automation",
-                "7. Shortcuts",
+                "1. Appearance & Emerald Theme",
+                "2. Embedded Spectrum & DSP",
+                "3. Audio Capture Engine",
+                "4. Bar Position & Pinning",
+                "5. Music Bar Controls",
+                "6. Auto-Hide & Startup",
+                "7. Keyboard Shortcuts",
                 "8. General & Diagnostics"
             };
 
@@ -92,9 +95,9 @@ namespace AuraWave.Windows
                     HorizontalContentAlignment = HorizontalAlignment.Left,
                     Padding = new Thickness(12, 10, 12, 10),
                     Margin = new Thickness(0, 0, 0, 6),
-                    Background = new SolidColorBrush(Color.FromRgb(30, 41, 59)),
+                    Background = new SolidColorBrush(Color.FromRgb(16, 38, 31)),
                     Foreground = Brushes.White,
-                    BorderBrush = new SolidColorBrush(Color.FromArgb(80, 0, 242, 254)),
+                    BorderBrush = new SolidColorBrush(Color.FromArgb(90, 53, 214, 160)),
                     BorderThickness = new Thickness(1)
                 };
                 btn.Click += (_, _) => ShowSection(idx);
@@ -127,99 +130,86 @@ namespace AuraWave.Windows
             switch (index)
             {
                 case 0:
-                    AddHeader(panel, "Appearance & Theme Studio", "Customize color palettes, glow intensity, waveform thickness, and glass surfaces.");
-                    AddEnumCombo(panel, "Color Theme Preset", cfg.SelectedTheme, val => { cfg.SelectedTheme = val; SaveAndApply(); });
-                    AddSlider(panel, "Visualizer Intensity", 0.2, 3.0, cfg.VisualizerIntensity, val => { cfg.VisualizerIntensity = val; SaveAndApply(); });
-                    AddSlider(panel, "Glow Intensity", 0.0, 1.0, cfg.GlowIntensity, val => { cfg.GlowIntensity = val; SaveAndApply(); });
-                    AddSlider(panel, "Waveform Line Thickness", 1.0, 8.0, cfg.WaveformThickness, val => { cfg.WaveformThickness = val; SaveAndApply(); });
-                    AddSlider(panel, "Now Playing Surface Opacity", 0.2, 1.0, cfg.NowPlayingSurfaceOpacity, val => { cfg.NowPlayingSurfaceOpacity = val; SaveAndApply(); });
-                    AddCheck(panel, "Enable Reflection Under Spectrum", cfg.EnableReflection, val => { cfg.EnableReflection = val; SaveAndApply(); });
-                    AddCheck(panel, "Enable Secondary Layered Waveform", cfg.EnableSecondaryWaveform, val => { cfg.EnableSecondaryWaveform = val; SaveAndApply(); });
+                    AddHeader(panel, "Appearance & Emerald Theme", "Configure the emerald-green floating capsule surface, opacity, and accents.");
+                    AddEnumCombo(panel, "Color Theme Preset (Default: EmeraldCapsule)", cfg.SelectedTheme, val => { cfg.SelectedTheme = val; SaveAndApply(); });
+                    AddSlider(panel, "Capsule Surface Opacity", 0.35, 1.0, cfg.NowPlayingSurfaceOpacity, val => { cfg.NowPlayingSurfaceOpacity = val; SaveAndApply(); });
+                    AddSlider(panel, "Embedded Spectrum Intensity", 0.2, 3.0, cfg.VisualizerIntensity, val => { cfg.VisualizerIntensity = val; SaveAndApply(); });
+                    AddSlider(panel, "Outer Emerald Glow Intensity", 0.0, 1.0, cfg.GlowIntensity, val => { cfg.GlowIntensity = val; SaveAndApply(); });
                     break;
 
                 case 1:
-                    AddHeader(panel, "Audio Visualizers", "Switch between 9 real-time FFT and waveform visualizers.");
-                    AddEnumCombo(panel, "Active Visualizer Mode", cfg.SelectedVisualizer, val => { cfg.SelectedVisualizer = val; SaveAndApply(); });
-                    AddSlider(panel, "Frequency Band Density", 16, 128, cfg.FrequencyBandCount, val => { cfg.FrequencyBandCount = (int)Math.Round(val); SaveAndApply(); });
+                    AddHeader(panel, "Embedded Spectrum & Optional Standalone Mode", "Configure the real-time audio spectrum inside the music bar.");
+                    AddCheck(panel, "Show Embedded Mini Audio Spectrum Inside Music Bar", cfg.ShowEmbeddedSpectrum, val => { cfg.ShowEmbeddedSpectrum = val; SaveAndApply(); });
                     AddSlider(panel, "Audio Sensitivity", 0.2, 5.0, cfg.AudioSensitivity, val => { cfg.AudioSensitivity = val; SaveAndApply(); });
                     AddSlider(panel, "Temporal Smoothing Factor", 0.05, 0.95, cfg.SmoothingFactor, val => { cfg.SmoothingFactor = val; SaveAndApply(); });
                     AddSlider(panel, "Bass Response Boost", 0.5, 2.5, cfg.BassResponseBoost, val => { cfg.BassResponseBoost = val; SaveAndApply(); });
-                    AddCheck(panel, "Symmetric Spectrum Mode", cfg.SymmetricSpectrum, val => { cfg.SymmetricSpectrum = val; SaveAndApply(); });
-                    AddCheck(panel, "Show Peak-Hold Indicators", cfg.ShowPeakIndicators, val => { cfg.ShowPeakIndicators = val; SaveAndApply(); });
+                    AddCheck(panel, "Enable Optional Separate Desktop Waveform (Disabled by Default)", cfg.WaveformVisible, val => { cfg.WaveformVisible = val; SaveAndApply(); });
                     break;
 
                 case 2:
                     AddHeader(panel, "WASAPI Loopback Audio Engine", "Real-time system audio capture and hysteresis activity thresholds.");
                     AddInfoLine(panel, "Current Output Endpoint", _audioEngine.CurrentDeviceName);
                     AddInfoLine(panel, "Capture Engine Status", _audioEngine.CaptureStatusText);
-                    AddInfoLine(panel, "Audio Activity State", _audioEngine.LatestFrame.IsAudioActive ? "Active (Music Detected)" : "Idle / Silent");
+                    AddInfoLine(panel, "Audio Activity State", _audioEngine.LatestFrame.IsAudioActive ? "Active (Music Playing)" : "Idle / Silent");
                     AddSlider(panel, "Attack Threshold (RMS)", 0.001, 0.08, cfg.ActivityAttackThreshold, val => { cfg.ActivityAttackThreshold = val; SaveAndApply(); });
                     AddSlider(panel, "Release Threshold (RMS)", 0.0005, 0.05, cfg.ActivityReleaseThreshold, val => { cfg.ActivityReleaseThreshold = val; SaveAndApply(); });
-                    AddSlider(panel, "Noise Floor Gate", 0.0002, 0.02, cfg.NoiseFloorThreshold, val => { cfg.NoiseFloorThreshold = val; SaveAndApply(); });
                     AddActionButton(panel, "Restart WASAPI Loopback Capture", () => _audioEngine.Start());
                     break;
 
                 case 3:
-                    AddHeader(panel, "Window & Overlay Layout", "Independent visibility, pinning, click-through, and placement presets.");
-                    AddEnumCombo(panel, "Presentation Mode", cfg.PresentationMode, val => { cfg.PresentationMode = val; SaveAndApply(); });
-                    AddEnumCombo(panel, "Waveform Placement Preset", cfg.WaveformPlacementPreset, val => { cfg.WaveformPlacementPreset = val; SaveAndApply(); });
-                    AddCheck(panel, "Show Transparent Waveform Overlay", cfg.WaveformVisible, val => { cfg.WaveformVisible = val; SaveAndApply(); });
-                    AddCheck(panel, "Pin Waveform (Never Auto-Hide)", cfg.WaveformPinned, val => { cfg.WaveformPinned = val; SaveAndApply(); });
-                    AddCheck(panel, "Show Floating Now Playing Widget", cfg.NowPlayingVisible, val => { cfg.NowPlayingVisible = val; SaveAndApply(); });
-                    AddCheck(panel, "Pin Now Playing Widget", cfg.NowPlayingPinned, val => { cfg.NowPlayingPinned = val; SaveAndApply(); });
-                    AddCheck(panel, "Enable Click-Through on Waveform (Alt+C)", cfg.ClickThroughEnabled, val => { cfg.ClickThroughEnabled = val; SaveAndApply(); });
-                    AddCheck(panel, "Keep Overlay Always-On-Top", cfg.AlwaysOnTop, val => { cfg.AlwaysOnTop = val; SaveAndApply(); });
+                    AddHeader(panel, "Music Bar Position, Pinning & Overlay Mode", "Position the floating bar at the bottom center above the Windows taskbar.");
+                    AddActionButton(panel, "Reset Music Bar Position to Bottom Center (Above Taskbar)", () => _resetPositionCallback());
+                    AddCheck(panel, "Show Floating Emerald Music Bar", cfg.NowPlayingVisible, val => { cfg.NowPlayingVisible = val; SaveAndApply(); });
+                    AddCheck(panel, "Pin Music Bar (Keep Visible & Disable 5s Auto-Hide)", cfg.NowPlayingPinned, val => { cfg.NowPlayingPinned = val; SaveAndApply(); });
+                    AddCheck(panel, "Always-On-Top Overlay Mode", cfg.AlwaysOnTop, val => { cfg.AlwaysOnTop = val; SaveAndApply(); });
+                    AddCheck(panel, "Compact Bar Mode (For Smaller Screens)", cfg.CompactBarMode, val => { cfg.CompactBarMode = val; SaveAndApply(); });
+                    AddCheck(panel, "Lock Click-Through Mode (Unlock anytime via Alt+C or Tray)", cfg.ClickThroughEnabled, val => { cfg.ClickThroughEnabled = val; SaveAndApply(); });
                     break;
 
                 case 4:
-                    AddHeader(panel, "Now Playing Companion Widget", "Configure rotating disc artwork, metadata fields, and auto-hide timeout.");
-                    AddCheck(panel, "Show Album Art / Vinyl Disc", cfg.ShowAlbumArt, val => { cfg.ShowAlbumArt = val; SaveAndApply(); });
-                    AddCheck(panel, "Enable Rotating Vinyl Disc Animation", cfg.EnableRotatingDisc, val => { cfg.EnableRotatingDisc = val; SaveAndApply(); });
+                    AddHeader(panel, "Music Bar Elements & Controls", "Customize visible sections inside the emerald floating capsule.");
+                    AddCheck(panel, "Show Rounded Album Art & Vinyl Ring", cfg.ShowAlbumArt, val => { cfg.ShowAlbumArt = val; SaveAndApply(); });
+                    AddCheck(panel, "Enable Rotating Disc Animation During Playback", cfg.EnableRotatingDisc, val => { cfg.EnableRotatingDisc = val; SaveAndApply(); });
                     AddCheck(panel, "Show Track Title", cfg.ShowTrackTitle, val => { cfg.ShowTrackTitle = val; SaveAndApply(); });
-                    AddCheck(panel, "Show Artist Name", cfg.ShowArtistName, val => { cfg.ShowArtistName = val; SaveAndApply(); });
-                    AddCheck(panel, "Show Playback Progress Bar", cfg.ShowProgressBar, val => { cfg.ShowProgressBar = val; SaveAndApply(); });
-                    AddCheck(panel, "Show System Output Volume Slider", cfg.ShowVolumeControl, val => { cfg.ShowVolumeControl = val; SaveAndApply(); });
-                    AddCheck(panel, "Enable Contextual Toolbar Auto-Hide", cfg.EnableNowPlayingAutoHide, val => { cfg.EnableNowPlayingAutoHide = val; SaveAndApply(); });
-                    AddSlider(panel, "Auto-Hide Timeout (Seconds)", 2, 30, cfg.AutoHideTimeoutSeconds, val => { cfg.AutoHideTimeoutSeconds = (int)Math.Round(val); SaveAndApply(); });
+                    AddCheck(panel, "Show Artist Name & Source Indicator", cfg.ShowArtistName, val => { cfg.ShowArtistName = val; SaveAndApply(); });
+                    AddCheck(panel, "Show Playback Progress Line & Elapsed/Total Time", cfg.ShowProgressBar, val => { cfg.ShowProgressBar = val; SaveAndApply(); });
+                    AddCheck(panel, "Show System Output Volume Pill & Mute Control", cfg.ShowVolumeControl, val => { cfg.ShowVolumeControl = val; SaveAndApply(); });
+                    AddCheck(panel, "Show Previous / Next Track Buttons", cfg.ShowPrevNextControls, val => { cfg.ShowPrevNextControls = val; SaveAndApply(); });
                     break;
 
                 case 5:
-                    AddHeader(panel, "Automation & Windows Startup", "Automatic music detection and per-user Windows login startup.");
+                    AddHeader(panel, "Five-Second Auto-Hide & Windows Startup", "Configure unpinned inactivity hiding and automatic startup.");
+                    AddCheck(panel, "Enable Auto-Hide When Unpinned", cfg.EnableNowPlayingAutoHide, val => { cfg.EnableNowPlayingAutoHide = val; SaveAndApply(); });
+                    AddSlider(panel, "Auto-Hide Timeout (Seconds — Default: 5s)", 2, 30, cfg.AutoHideTimeoutSeconds, val => { cfg.AutoHideTimeoutSeconds = (int)Math.Round(val); SaveAndApply(); });
+                    AddCheck(panel, "Automatically Show Music Bar When Music Starts", cfg.AutoShowNowPlayingOnAudio, val => { cfg.AutoShowNowPlayingOnAudio = val; SaveAndApply(); });
                     AddCheck(panel, "Start AuraWave at Windows Login (HKCU Run)", cfg.StartWithWindows, val =>
                     {
                         cfg.StartWithWindows = val;
                         StartupRegistrationService.SetStartupEnabled(val);
                         SaveAndApply();
                     });
-                    AddCheck(panel, "Automatically Show Waveform When Music Starts", cfg.AutoShowWaveformOnAudio, val => { cfg.AutoShowWaveformOnAudio = val; SaveAndApply(); });
-                    AddCheck(panel, "Automatically Show Now Playing When Music Starts", cfg.AutoShowNowPlayingOnAudio, val => { cfg.AutoShowNowPlayingOnAudio = val; SaveAndApply(); });
-                    AddCheck(panel, "Automatically Hide Unpinned Widgets When Audio Stops", cfg.AutoHideWhenAudioStops, val => { cfg.AutoHideWhenAudioStops = val; SaveAndApply(); });
-                    AddSlider(panel, "Audio Stop Inactivity Delay (Seconds)", 2, 60, cfg.AudioStopInactivityDelaySeconds, val => { cfg.AudioStopInactivityDelaySeconds = (int)Math.Round(val); SaveAndApply(); });
                     break;
 
                 case 6:
                     AddHeader(panel, "Global Keyboard Shortcuts", "Registered system-wide Windows hotkeys.");
-                    AddInfoLine(panel, "Alt + C", "Toggle Waveform Click-Through Mode");
-                    AddInfoLine(panel, "Alt + A", "Show or Hide All AuraWave Components");
+                    AddInfoLine(panel, "Alt + P / Alt + A", "Show or Hide the Emerald Music Bar");
                     AddInfoLine(panel, "Alt + S", "Open or Focus This Settings Window");
-                    AddInfoLine(panel, "Alt + M", "Cycle Presentation Mode (Overlay / Desktop / WorkerW)");
-                    AddInfoLine(panel, "Alt + W", "Toggle Waveform Visibility Independently");
-                    AddInfoLine(panel, "Alt + P", "Toggle Now Playing Visibility Independently");
-                    AddInfoLine(panel, "Ctrl + Alt + E", "Enter or Exit Interactive Edit & Resize Mode");
-                    AddInfoLine(panel, "Ctrl + Alt + Plus", "Increase Selected Widget Size (+10%)");
-                    AddInfoLine(panel, "Ctrl + Alt + Minus", "Decrease Selected Widget Size (-10%)");
+                    AddInfoLine(panel, "Alt + C", "Toggle Click-Through Interaction Lock");
+                    AddInfoLine(panel, "Ctrl + Alt + E", "Enter or Exit Interactive Resize Mode");
+                    AddInfoLine(panel, "Ctrl + Alt + Plus / Minus", "Increase or Decrease Music Bar Size");
+                    AddInfoLine(panel, "Alt + W", "Toggle Optional Standalone Waveform");
                     AddInfoLine(panel, "Alt + Q", "Cleanly Quit AuraWave");
                     break;
 
                 case 7:
                     AddHeader(panel, "General, Persistence & Diagnostics", "Configuration file paths, log locations, and factory reset.");
-                    AddInfoLine(panel, "Application Version", "AuraWave 1.0.0 (Windows x64)");
+                    AddInfoLine(panel, "Application Version", "AuraWave 1.1.0 — Emerald Floating Music Bar (win-x64)");
                     AddInfoLine(panel, "Configuration File", _configService.ConfigFilePath);
                     AddInfoLine(panel, "Diagnostic Log File", AppLogger.LogFilePath);
-                    AddInfoLine(panel, "Active Media Source", _mediaService.CurrentSession.SourceAppId);
-                    AddActionButton(panel, "Restore Default Settings", () =>
+                    AddActionButton(panel, "Restore Default Emerald Music Bar Settings", () =>
                     {
                         _configService.ResetToDefaults();
+                        _resetPositionCallback();
                         _applyLiveSettingsCallback();
                         ShowSection(7);
                     });
@@ -240,16 +230,16 @@ namespace AuraWave.Windows
             parent.Children.Add(new TextBlock
             {
                 Text = title,
-                FontSize = 22,
+                FontSize = 21,
                 FontWeight = FontWeights.Bold,
-                Foreground = Brushes.White,
+                Foreground = new SolidColorBrush(Color.FromRgb(242, 247, 245)),
                 Margin = new Thickness(0, 0, 0, 4)
             });
             parent.Children.Add(new TextBlock
             {
                 Text = subtitle,
                 FontSize = 12.5,
-                Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)),
+                Foreground = new SolidColorBrush(Color.FromRgb(145, 164, 158)),
                 Margin = new Thickness(0, 0, 0, 20)
             });
         }
@@ -260,7 +250,7 @@ namespace AuraWave.Windows
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(240) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            var lbl = new TextBlock { Text = label, Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)), FontWeight = FontWeights.SemiBold };
+            var lbl = new TextBlock { Text = label, Foreground = new SolidColorBrush(Color.FromRgb(145, 164, 158)), FontWeight = FontWeights.SemiBold };
             var val = new TextBlock { Text = value, Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap };
             Grid.SetColumn(lbl, 0);
             Grid.SetColumn(val, 1);
@@ -339,8 +329,8 @@ namespace AuraWave.Windows
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(14, 8, 14, 8),
                 Margin = new Thickness(0, 8, 0, 12),
-                Background = new SolidColorBrush(Color.FromRgb(0, 242, 254)),
-                Foreground = new SolidColorBrush(Color.FromRgb(10, 15, 28)),
+                Background = new SolidColorBrush(Color.FromRgb(53, 214, 160)),
+                Foreground = new SolidColorBrush(Color.FromRgb(7, 18, 15)),
                 FontWeight = FontWeights.Bold
             };
             btn.Click += (_, _) => onClick();

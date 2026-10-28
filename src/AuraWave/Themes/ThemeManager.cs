@@ -9,6 +9,18 @@ namespace AuraWave.Themes
     {
         private static readonly Dictionary<ThemePreset, ThemePalette> BuiltInPalettes = new Dictionary<ThemePreset, ThemePalette>
         {
+            [ThemePreset.EmeraldCapsule] = new ThemePalette
+            {
+                Name = "Emerald Capsule",
+                PrimaryHex = "#35D6A0",
+                SecondaryHex = "#42E5B0",
+                AccentHex = "#087F62",
+                PeakHex = "#A7F3D0",
+                TextHex = "#F2F7F5",
+                SecondaryTextHex = "#91A49E",
+                SurfaceHex = "#07120F",
+                GlowHex = "#35D6A0"
+            },
             [ThemePreset.ArcticPulse] = new ThemePalette
             {
                 Name = "Arctic Pulse",
@@ -17,6 +29,8 @@ namespace AuraWave.Themes
                 AccentHex = "#7F7FD5",
                 PeakHex = "#E0F7FA",
                 TextHex = "#F8FAFC",
+                SecondaryTextHex = "#94A3B8",
+                SurfaceHex = "#0B1120",
                 GlowHex = "#00E5FF"
             },
             [ThemePreset.VioletEther] = new ThemePalette
@@ -27,6 +41,8 @@ namespace AuraWave.Themes
                 AccentHex = "#647DEE",
                 PeakHex = "#F3E5F5",
                 TextHex = "#F8FAFC",
+                SecondaryTextHex = "#94A3B8",
+                SurfaceHex = "#0F1026",
                 GlowHex = "#B388FF"
             },
             [ThemePreset.Aurora] = new ThemePalette
@@ -34,9 +50,11 @@ namespace AuraWave.Themes
                 Name = "Aurora",
                 PrimaryHex = "#00FF87",
                 SecondaryHex = "#60EFFF",
-                AccentHex = "#7B61FF",
+                AccentHex = "#087F62",
                 PeakHex = "#E8F5E9",
-                TextHex = "#F8FAFC",
+                TextHex = "#F2F7F5",
+                SecondaryTextHex = "#91A49E",
+                SurfaceHex = "#07120F",
                 GlowHex = "#00E676"
             },
             [ThemePreset.Afterglow] = new ThemePalette
@@ -47,6 +65,8 @@ namespace AuraWave.Themes
                 AccentHex = "#FF8E53",
                 PeakHex = "#FCE4EC",
                 TextHex = "#F8FAFC",
+                SecondaryTextHex = "#CBD5E1",
+                SurfaceHex = "#160B1E",
                 GlowHex = "#FF4081"
             },
             [ThemePreset.Ultraviolet] = new ThemePalette
@@ -57,6 +77,8 @@ namespace AuraWave.Themes
                 AccentHex = "#F64F59",
                 PeakHex = "#EDE7F6",
                 TextHex = "#F8FAFC",
+                SecondaryTextHex = "#94A3B8",
+                SurfaceHex = "#120B24",
                 GlowHex = "#D500F9"
             },
             [ThemePreset.Midnight] = new ThemePalette
@@ -67,6 +89,8 @@ namespace AuraWave.Themes
                 AccentHex = "#1E3C72",
                 PeakHex = "#BBDEFB",
                 TextHex = "#E2E8F0",
+                SecondaryTextHex = "#94A3B8",
+                SurfaceHex = "#090D16",
                 GlowHex = "#2979FF"
             },
             [ThemePreset.Monochrome] = new ThemePalette
@@ -77,6 +101,8 @@ namespace AuraWave.Themes
                 AccentHex = "#CBD5E1",
                 PeakHex = "#FFFFFF",
                 TextHex = "#F8FAFC",
+                SecondaryTextHex = "#94A3B8",
+                SurfaceHex = "#0F172A",
                 GlowHex = "#E2E8F0"
             }
         };
@@ -92,13 +118,15 @@ namespace AuraWave.Themes
                     SecondaryHex = config.CustomSecondaryHex,
                     AccentHex = config.CustomAccentHex,
                     PeakHex = config.CustomPeakHex,
-                    TextHex = "#F8FAFC",
+                    TextHex = "#F2F7F5",
+                    SecondaryTextHex = "#91A49E",
+                    SurfaceHex = "#07120F",
                     GlowHex = config.CustomPrimaryHex
                 };
             }
             return BuiltInPalettes.TryGetValue(config.SelectedTheme, out var p)
                 ? p
-                : BuiltInPalettes[ThemePreset.ArcticPulse];
+                : BuiltInPalettes[ThemePreset.EmeraldCapsule];
         }
 
         public static Color ParseColor(string hex, Color fallback)
