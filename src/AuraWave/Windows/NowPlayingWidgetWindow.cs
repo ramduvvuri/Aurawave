@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.IO;
 using System.Windows;
@@ -584,7 +583,7 @@ namespace AuraWave.Windows
 
             var barGrid = new Grid
             {
-                Margin = new Thickness(11, 5, 13, 5),
+                Margin = new Thickness(22, 5, 16, 5),
                 VerticalAlignment = VerticalAlignment.Center
             };
             barGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -992,11 +991,11 @@ namespace AuraWave.Windows
             }
         }
 
-        private static bool IsInteractiveChild(DependencyObject? source)
+        private bool IsInteractiveChild(DependencyObject? source)
         {
             while (source != null)
             {
-                if (source is ButtonBase || source is EmeraldVolumeBarControl)
+                if (source is ButtonBase || source is EmeraldVolumeBarControl || ReferenceEquals(source, _artworkHostGrid))
                     return true;
                 source = VisualTreeHelper.GetParent(source);
             }
@@ -1013,27 +1012,77 @@ namespace AuraWave.Windows
             g.Height = Height;
         }
 
+                private bool _isCircularArtMode = true;
+        private RectangleGeometry _artClipGeometry;
+
         private Grid CreateAlbumArtworkBox()
         {
+            _artClipGeometry = new RectangleGeometry(new Rect(0, 0, 54, 54), 27, 27);
+
             var container = new Grid
             {
-                Width = 56,
-                Height = 56,
+                Width = 54,
+                Height = 54,
+                Margin = new Thickness(2, 0, 4, 0),
                 VerticalAlignment = VerticalAlignment.Center,
-                RenderTransform = _discRotateTransform
+                RenderTransform = _discRotateTransform,
+                Cursor = Cursors.Hand,
+                ToolTip = "Click album art to toggle between Rounded Squircle and Full Circle style",
+                Effect = new DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    BlurRadius = 12,
+                    ShadowDepth = 2,
+                    Opacity = 0.65
+                }
             };
 
-            var artBorder = new Border
+            var clippedSurface = new Grid
             {
-                Width = 56,
-                Height = 56,
-                CornerRadius = new CornerRadius(11),
-                Background = _artworkImageBrush,
-                BorderBrush = new SolidColorBrush(Color.FromArgb(95, 255, 255, 255)),
-                BorderThickness = new Thickness(0.8)
+                Width = 54,
+                Height = 54,
+                Clip = _artClipGeometry
             };
 
-            container.Children.Add(artBorder);
+            var imageRect = new Rectangle
+            {
+                Width = 54,
+                Height = 54,
+                Fill = _artworkImageBrush
+            };
+
+            // Soft inner vignette so edges blend into the dark capsule without a harsh square border
+            var vignetteBrush = new RadialGradientBrush
+            {
+                Center = new Point(0.5, 0.5),
+                GradientOrigin = new Point(0.5, 0.5),
+                RadiusX = 0.72,
+                RadiusY = 0.72
+            };
+            vignetteBrush.GradientStops.Add(new GradientStop(Color.FromArgb(0, 0, 0, 0), 0.55));
+            vignetteBrush.GradientStops.Add(new GradientStop(Color.FromArgb(95, 6, 14, 12), 1.0));
+
+            var vignetteRect = new Rectangle
+            {
+                Width = 54,
+                Height = 54,
+                Fill = vignetteBrush,
+                IsHitTestVisible = false
+            };
+
+            clippedSurface.Children.Add(imageRect);
+            clippedSurface.Children.Add(vignetteRect);
+            container.Children.Add(clippedSurface);
+
+            container.MouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                _isCircularArtMode = !_isCircularArtMode;
+                double r = _isCircularArtMode ? 27.0 : 15.0;
+                _artClipGeometry.RadiusX = r;
+                _artClipGeometry.RadiusY = r;
+            };
+
             return container;
         }
 

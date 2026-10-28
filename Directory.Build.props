@@ -11,5 +11,6 @@
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
     <RollForward>LatestMajor</RollForward>
+    <NoWarn>$(NoWarn);CS8602;CS8618;CS8625;CS8632</NoWarn>
   </PropertyGroup>
 </Project>
