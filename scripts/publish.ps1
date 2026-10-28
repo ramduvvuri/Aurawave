@@ -15,11 +15,12 @@ try {
         -o $PublishDir
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-    Copy-Item (Join-Path $Root "Launch-AuraWave.bat") $PublishDir -Force
-    Copy-Item (Join-Path $Root "README.md") $PublishDir -Force
-    Copy-Item (Join-Path $Root "LICENSE") $PublishDir -Force
-    Copy-Item (Join-Path $Root "THIRD-PARTY-NOTICES.txt") $PublishDir -Force
-    Copy-Item (Join-Path $Root "dist\AuraWave-STEP-BY-STEP-GUIDE.md") $PublishDir -Force
+    foreach ($doc in @("Launch-AuraWave.bat", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.txt", "dist\AuraWave-STEP-BY-STEP-GUIDE.md")) {
+        $src = Join-Path $Root $doc
+        if (Test-Path $src) {
+            Copy-Item $src $PublishDir -Force
+        }
+    }
 } finally {
     Pop-Location
 }

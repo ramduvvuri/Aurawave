@@ -1,10 +1,21 @@
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $DistDir = Join-Path $Root "dist"
+if (-not (Test-Path $DistDir)) { New-Item -ItemType Directory -Path $DistDir -Force | Out-Null }
+
+$GuidePath = Join-Path $DistDir "AuraWave-STEP-BY-STEP-GUIDE.md"
+if (-not (Test-Path $GuidePath)) {
+    "# AuraWave Step-by-Step Running Guide`n1. Extract AuraWave-Portable-Windows-x64.zip`n2. Run AuraWave.exe" | Set-Content -Path $GuidePath -Encoding UTF8
+}
 
 & (Join-Path $PSScriptRoot "build.ps1")
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 & (Join-Path $PSScriptRoot "test.ps1")
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 & (Join-Path $PSScriptRoot "publish.ps1")
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $PortableZip = Join-Path $DistDir "AuraWave-Portable-Windows-x64.zip"
 $SourceZip   = Join-Path $DistDir "AuraWave-Source.zip"
@@ -29,7 +40,7 @@ foreach ($item in $ItemsToCopy) {
         Copy-Item -Path $srcPath -Destination $SourceStaging -Recurse -Force
     }
 }
-Get-ChildItem -Path $SourceStaging -Include "bin","obj" -Directory -Recurse | Remove-Item -Recurse -Force
+Get-ChildItem -Path $SourceStaging -Include "bin","obj" -Directory -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 Compress-Archive -Path "$SourceStaging\*" -DestinationPath $SourceZip -Force
 
 Write-Host "==> Creating AuraWave-Complete-Bundle.zip..." -ForegroundColor Cyan
@@ -39,12 +50,12 @@ New-Item -ItemType Directory -Path $BundleStaging -Force | Out-Null
 
 Copy-Item $PortableZip $BundleStaging -Force
 Copy-Item $SourceZip $BundleStaging -Force
-Copy-Item (Join-Path $DistDir "AuraWave-STEP-BY-STEP-GUIDE.md") $BundleStaging -Force
-Copy-Item (Join-Path $Root "README.md") $BundleStaging -Force
-Copy-Item (Join-Path $Root "LICENSE") $BundleStaging -Force
+if (Test-Path $GuidePath) { Copy-Item $GuidePath $BundleStaging -Force }
+if (Test-Path (Join-Path $Root "README.md")) { Copy-Item (Join-Path $Root "README.md") $BundleStaging -Force }
+if (Test-Path (Join-Path $Root "LICENSE")) { Copy-Item (Join-Path $Root "LICENSE") $BundleStaging -Force }
 Compress-Archive -Path "$BundleStaging\*" -DestinationPath $BundleZip -Force
 
-Remove-Item -Recurse -Force (Join-Path $DistDir "staging")
+Remove-Item -Recurse -Force (Join-Path $DistDir "staging") -ErrorAction SilentlyContinue
 
 $SumsFile = Join-Path $DistDir "SHA256SUMS.txt"
 $Lines = @()

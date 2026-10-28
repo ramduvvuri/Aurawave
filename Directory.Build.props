@@ -10,5 +10,6 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
+    <RollForward>LatestMajor</RollForward>
   </PropertyGroup>
 </Project>

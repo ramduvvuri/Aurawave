@@ -52,10 +52,12 @@ namespace AuraWave.Tests
             var f2 = dsp.ProcessSamples(loud, 48000, 32, 1.0, 0.5, 0.2, 1.0, 0.001, 0.01, 0.004, 200, 5000, t0.AddMilliseconds(260));
             Assert.True(f2.IsAudioActive);
 
+            // Silence starts at t0 + 2000ms
             var f3 = dsp.ProcessSamples(silent, 48000, 32, 1.0, 0.5, 0.2, 1.0, 0.001, 0.01, 0.004, 200, 5000, t0.AddMilliseconds(2000));
             Assert.True(f3.IsAudioActive);
 
-            var f4 = dsp.ProcessSamples(silent, 48000, 32, 1.0, 0.5, 0.2, 1.0, 0.001, 0.01, 0.004, 200, 5000, t0.AddMilliseconds(6000));
+            // At t0 + 7500ms, 5500ms of silence have elapsed (>= 5000ms releaseHoldMs)
+            var f4 = dsp.ProcessSamples(silent, 48000, 32, 1.0, 0.5, 0.2, 1.0, 0.001, 0.01, 0.004, 200, 5000, t0.AddMilliseconds(7500));
             Assert.False(f4.IsAudioActive);
         }
 
