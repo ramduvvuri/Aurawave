@@ -1,10 +1,12 @@
+#nullable disable
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Media.Control;
+using global::Windows.Media.Control;
+using global::Windows.Storage.Streams;
 using AuraWave.Models;
 using AuraWave.Utilities;
 
@@ -227,7 +229,7 @@ namespace AuraWave.Media
                             PlaybackStatus = status,
                             Position = position < TimeSpan.Zero ? TimeSpan.Zero : position,
                             Duration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration,
-                            SupportsPlayPause = playbackInfo?.Controls?.IsPlayPauseToggleSupported ?? true,
+                            SupportsPlayPause = (playbackInfo?.Controls != null ? (playbackInfo.Controls.IsPlayEnabled || playbackInfo.Controls.IsPauseEnabled) : true),
                             SupportsNext = playbackInfo?.Controls?.IsNextEnabled ?? true,
                             SupportsPrevious = playbackInfo?.Controls?.IsPreviousEnabled ?? true
                         };
@@ -250,7 +252,7 @@ namespace AuraWave.Media
             }
         }
 
-        private static async Task<byte[]?> TryReadThumbnailBytesAsync(Windows.Storage.Streams.IRandomAccessStreamReference? thumbRef)
+        private static async Task<byte[]?> TryReadThumbnailBytesAsync(global::Windows.Storage.Streams.IRandomAccessStreamReference? thumbRef)
         {
             if (thumbRef == null) return null;
             try

@@ -1,3 +1,4 @@
+#nullable disable
 using System;
 using System.IO;
 using System.Windows;
@@ -1069,10 +1070,10 @@ namespace AuraWave.Windows
                     {
                         // Distant twilight city & water horizon
                         double t = (ny - 0.68) / 0.32;
-                        doublebokeh = ((x * 37 + y * 13) % 29 == 0 && t < 0.55) ? 65.0 : 0.0;
-                        r = 38 * (1.0 - t * 0.6) + doublebokeh;
-                        g = 36 * (1.0 - t * 0.6) + doublebokeh * 0.8;
-                        b = 48 * (1.0 - t * 0.5) + doublebokeh * 0.5;
+                        double bokeh = ((x * 37 + y * 13) % 29 == 0 && t < 0.55) ? 65.0 : 0.0;
+                        r = 38 * (1.0 - t * 0.6) + bokeh;
+                        g = 36 * (1.0 - t * 0.6) + bokeh * 0.8;
+                        b = 48 * (1.0 - t * 0.5) + bokeh * 0.5;
                     }
 
                     // Soft natural silhouette of person looking at horizon
