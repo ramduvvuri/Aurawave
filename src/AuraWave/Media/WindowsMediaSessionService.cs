@@ -1,8 +1,10 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.Media.Control;
 using AuraWave.Models;
 using AuraWave.Utilities;
 
@@ -12,19 +14,19 @@ namespace AuraWave.Media
     {
         private CancellationTokenSource? _cts;
         private Task? _pollTask;
-        private DateTime _trackStartUtc = DateTime.UtcNow.AddSeconds(-342);
-        private string _lastTrackKey = string.Empty;
+        private GlobalSystemMediaTransportControlsSessionManager? _sessionManager;
+        private string _lastArtworkCacheKey = string.Empty;
+        private byte[]? _cachedArtworkBytes;
         private bool _isAudioCurrentlyActive;
-        private bool _manualPlayState = true;
 
         public MediaSessionSnapshot CurrentSession { get; private set; } = new MediaSessionSnapshot
         {
-            SourceAppId = "Spotify",
-            Title = "Uncover the Silent Beauty",
-            Artist = "Meadow",
-            PlaybackStatus = PlaybackState.Playing,
-            Position = TimeSpan.FromSeconds(342),
-            Duration = TimeSpan.FromSeconds(1214)
+            SourceAppId = "Windows Audio",
+            Title = "No Active Media Session",
+            Artist = "Play music in Spotify, Brave, Chrome, or Edge",
+            PlaybackStatus = PlaybackState.Stopped,
+            Position = TimeSpan.Zero,
+            Duration = TimeSpan.Zero
         };
 
         public event EventHandler<MediaSessionSnapshot>? SessionUpdated;
@@ -42,7 +44,7 @@ namespace AuraWave.Media
         {
             Stop();
             _cts = new CancellationTokenSource();
-            _pollTask = Task.Run(() => PollLoop(_cts.Token));
+            _pollTask = Task.Run(() => PollLoopAsync(_cts.Token));
         }
 
         public void Stop()
@@ -67,65 +69,205 @@ namespace AuraWave.Media
 
         public void SeekToRatio(double ratio)
         {
-            ratio = Math.Clamp(ratio, 0.0, 1.0);
-            var dur = CurrentSession.Duration.TotalSeconds > 1.0 ? CurrentSession.Duration : TimeSpan.FromSeconds(1214);
-            var targetElapsed = TimeSpan.FromSeconds(dur.TotalSeconds * ratio);
-            _trackStartUtc = DateTime.UtcNow - targetElapsed;
-            CurrentSession.Position = targetElapsed;
-            SessionUpdated?.Invoke(this, CurrentSession);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    ratio = Math.Clamp(ratio, 0.0, 1.0);
+                    var session = _sessionManager?.GetCurrentSession();
+                    if (session != null && CurrentSession.Duration.TotalSeconds > 1.0)
+                    {
+                        TimeSpan target = TimeSpan.FromSeconds(CurrentSession.Duration.TotalSeconds * ratio);
+                        await session.TryChangePlaybackPositionAsync(target.Ticks);
+                        CurrentSession.Position = target;
+                        SessionUpdated?.Invoke(this, CurrentSession);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Warn("GSMTC SeekToRatio warning: " + ex.Message);
+                }
+            });
         }
 
         public bool SendPlayPause()
         {
-            try
+            _ = Task.Run(async () =>
             {
-                _manualPlayState = !_manualPlayState;
+                try
+                {
+                    var session = _sessionManager?.GetCurrentSession();
+                    if (session != null)
+                    {
+                        bool ok = await session.TryTogglePlayPauseAsync();
+                        if (ok) return;
+                    }
+                }
+                catch { }
+
                 keybd_event(VK_MEDIA_PLAY_PAUSE, 0, KEYEVENTF_EXTENDEDKEY, UIntPtr.Zero);
                 keybd_event(VK_MEDIA_PLAY_PAUSE, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, UIntPtr.Zero);
-                CurrentSession.PlaybackStatus = _manualPlayState ? PlaybackState.Playing : PlaybackState.Paused;
-                SessionUpdated?.Invoke(this, CurrentSession);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                AppLogger.Warn("Play/Pause transport dispatch failed: " + ex.Message);
-                return false;
-            }
+            });
+            return true;
         }
 
         public bool SendNextTrack()
         {
-            try
+            _ = Task.Run(async () =>
             {
+                try
+                {
+                    var session = _sessionManager?.GetCurrentSession();
+                    if (session != null)
+                    {
+                        bool ok = await session.TrySkipNextAsync();
+                        if (ok) return;
+                    }
+                }
+                catch { }
+
                 keybd_event(VK_MEDIA_NEXT_TRACK, 0, KEYEVENTF_EXTENDEDKEY, UIntPtr.Zero);
                 keybd_event(VK_MEDIA_NEXT_TRACK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, UIntPtr.Zero);
-                _trackStartUtc = DateTime.UtcNow;
-                return true;
-            }
-            catch (Exception ex)
-            {
-                AppLogger.Warn("Next track dispatch failed: " + ex.Message);
-                return false;
-            }
+            });
+            return true;
         }
 
         public bool SendPreviousTrack()
         {
-            try
+            _ = Task.Run(async () =>
             {
+                try
+                {
+                    var session = _sessionManager?.GetCurrentSession();
+                    if (session != null)
+                    {
+                        bool ok = await session.TrySkipPreviousAsync();
+                        if (ok) return;
+                    }
+                }
+                catch { }
+
                 keybd_event(VK_MEDIA_PREV_TRACK, 0, KEYEVENTF_EXTENDEDKEY, UIntPtr.Zero);
                 keybd_event(VK_MEDIA_PREV_TRACK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, UIntPtr.Zero);
-                _trackStartUtc = DateTime.UtcNow;
-                return true;
+            });
+            return true;
+        }
+
+        private async Task PollLoopAsync(CancellationToken token)
+        {
+            try
+            {
+                _sessionManager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
             }
             catch (Exception ex)
             {
-                AppLogger.Warn("Previous track dispatch failed: " + ex.Message);
-                return false;
+                AppLogger.Warn("GSMTC RequestAsync initialization warning: " + ex.Message);
+            }
+
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    var session = _sessionManager?.GetCurrentSession();
+                    if (session != null)
+                    {
+                        var props = await session.TryGetMediaPropertiesAsync();
+                        var playbackInfo = session.GetPlaybackInfo();
+                        var timeline = session.GetTimelineProperties();
+
+                        string title = props?.Title?.Trim() ?? string.Empty;
+                        string artist = props?.Artist?.Trim() ?? string.Empty;
+                        string album = props?.AlbumTitle?.Trim() ?? string.Empty;
+                        string sourceApp = session.SourceAppUserModelId ?? "Media Session";
+
+                        string artKey = $"{sourceApp}|{artist}|{title}|{album}";
+                        if (artKey != _lastArtworkCacheKey)
+                        {
+                            _lastArtworkCacheKey = artKey;
+                            _cachedArtworkBytes = await TryReadThumbnailBytesAsync(props?.Thumbnail);
+                        }
+
+                        var status = PlaybackState.Stopped;
+                        if (playbackInfo != null)
+                        {
+                            status = playbackInfo.PlaybackStatus switch
+                            {
+                                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing => PlaybackState.Playing,
+                                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Paused => PlaybackState.Paused,
+                                GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped => PlaybackState.Stopped,
+                                _ => _isAudioCurrentlyActive ? PlaybackState.Playing : PlaybackState.Paused
+                            };
+                        }
+
+                        TimeSpan duration = TimeSpan.Zero;
+                        TimeSpan position = TimeSpan.Zero;
+                        if (timeline != null)
+                        {
+                            duration = timeline.EndTime - timeline.StartTime;
+                            position = timeline.Position;
+                            if (status == PlaybackState.Playing && timeline.LastUpdatedTime != default)
+                            {
+                                TimeSpan sinceUpdate = DateTimeOffset.UtcNow - timeline.LastUpdatedTime;
+                                if (sinceUpdate > TimeSpan.Zero && sinceUpdate < TimeSpan.FromMinutes(10))
+                                {
+                                    position += sinceUpdate;
+                                }
+                            }
+                            if (duration > TimeSpan.Zero && position > duration)
+                                position = duration;
+                        }
+
+                        var snap = new MediaSessionSnapshot
+                        {
+                            SourceAppId = CleanSourceAppName(sourceApp),
+                            Title = string.IsNullOrWhiteSpace(title) ? "Live Audio Stream" : title,
+                            Artist = string.IsNullOrWhiteSpace(artist) ? CleanSourceAppName(sourceApp) : artist,
+                            AlbumTitle = album,
+                            ArtworkBytes = _cachedArtworkBytes,
+                            PlaybackStatus = status,
+                            Position = position < TimeSpan.Zero ? TimeSpan.Zero : position,
+                            Duration = duration < TimeSpan.Zero ? TimeSpan.Zero : duration,
+                            SupportsPlayPause = playbackInfo?.Controls?.IsPlayPauseToggleSupported ?? true,
+                            SupportsNext = playbackInfo?.Controls?.IsNextEnabled ?? true,
+                            SupportsPrevious = playbackInfo?.Controls?.IsPreviousEnabled ?? true
+                        };
+
+                        CurrentSession = snap;
+                        SessionUpdated?.Invoke(this, snap);
+                    }
+                    else
+                    {
+                        FallbackWindowTitleDiscovery();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Warn("GSMTC poll cycle warning: " + ex.Message);
+                    FallbackWindowTitleDiscovery();
+                }
+
+                await Task.Delay(400, token);
             }
         }
 
-        private void PollLoop(CancellationToken token)
+        private static async Task<byte[]?> TryReadThumbnailBytesAsync(Windows.Storage.Streams.IRandomAccessStreamReference? thumbRef)
+        {
+            if (thumbRef == null) return null;
+            try
+            {
+                using var winrtStream = await thumbRef.OpenReadAsync();
+                using var netStream = winrtStream.AsStreamForRead();
+                using var ms = new MemoryStream();
+                await netStream.CopyToAsync(ms);
+                return ms.Length > 0 ? ms.ToArray() : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void FallbackWindowTitleDiscovery()
         {
             string[] mediaProcessNames = new[]
             {
@@ -133,90 +275,66 @@ namespace AuraWave.Media
                 "brave", "chrome", "msedge", "firefox"
             };
 
-            while (!token.IsCancellationRequested)
-            {
-                try
-                {
-                    string foundTitle = string.Empty;
-                    string foundArtist = string.Empty;
-                    string foundSource = string.Empty;
+            string foundTitle = string.Empty;
+            string foundArtist = string.Empty;
+            string foundSource = string.Empty;
 
-                    foreach (string procName in mediaProcessNames)
+            foreach (string procName in mediaProcessNames)
+            {
+                Process[] procs = Process.GetProcessesByName(procName);
+                foreach (var p in procs)
+                {
+                    try
                     {
-                        Process[] procs = Process.GetProcessesByName(procName);
-                        foreach (var p in procs)
+                        string wt = p.MainWindowTitle;
+                        if (!string.IsNullOrWhiteSpace(wt) && wt.Length > 2)
                         {
-                            try
+                            if (TryParseMediaWindowTitle(procName, wt, out string artist, out string title))
                             {
-                                string wt = p.MainWindowTitle;
-                                if (!string.IsNullOrWhiteSpace(wt) && wt.Length > 2)
-                                {
-                                    if (TryParseMediaWindowTitle(procName, wt, out string artist, out string title))
-                                    {
-                                        foundTitle = title;
-                                        foundArtist = artist;
-                                        foundSource = procName;
-                                        break;
-                                    }
-                                }
-                            }
-                            catch { }
-                            finally
-                            {
-                                p.Dispose();
+                                foundTitle = title;
+                                foundArtist = artist;
+                                foundSource = procName;
+                                break;
                             }
                         }
-                        if (!string.IsNullOrEmpty(foundTitle)) break;
                     }
-
-                    string key = $"{foundSource}|{foundArtist}|{foundTitle}";
-                    if (key != _lastTrackKey && !string.IsNullOrEmpty(foundTitle))
-                    {
-                        _lastTrackKey = key;
-                        _trackStartUtc = DateTime.UtcNow;
-                    }
-
-                    bool isPlaying = _isAudioCurrentlyActive || _manualPlayState;
-                    var status = isPlaying ? PlaybackState.Playing : PlaybackState.Paused;
-
-                    TimeSpan duration = string.IsNullOrEmpty(foundTitle)
-                        ? TimeSpan.FromSeconds(1214) // 20:14 reference timeline
-                        : TimeSpan.FromSeconds(240);
-
-                    TimeSpan elapsed = status == PlaybackState.Playing
-                        ? DateTime.UtcNow - _trackStartUtc
-                        : CurrentSession.Position;
-
-                    if (elapsed > duration || elapsed < TimeSpan.Zero)
-                    {
-                        _trackStartUtc = DateTime.UtcNow;
-                        elapsed = TimeSpan.Zero;
-                    }
-
-                    var snap = new MediaSessionSnapshot
-                    {
-                        SourceAppId = string.IsNullOrEmpty(foundSource) ? "Spotify" : foundSource,
-                        Title = string.IsNullOrEmpty(foundTitle) ? "Uncover the Silent Beauty" : foundTitle,
-                        Artist = string.IsNullOrEmpty(foundArtist) ? "Meadow" : foundArtist,
-                        AlbumTitle = foundSource,
-                        PlaybackStatus = status,
-                        Position = elapsed,
-                        Duration = duration,
-                        SupportsPlayPause = true,
-                        SupportsNext = true,
-                        SupportsPrevious = true
-                    };
-
-                    CurrentSession = snap;
-                    SessionUpdated?.Invoke(this, snap);
+                    catch { }
+                    finally { p.Dispose(); }
                 }
-                catch (Exception ex)
-                {
-                    AppLogger.Warn("Media session discovery cycle warning: " + ex.Message);
-                }
-
-                Thread.Sleep(500);
+                if (!string.IsNullOrEmpty(foundTitle)) break;
             }
+
+            var snap = new MediaSessionSnapshot
+            {
+                SourceAppId = string.IsNullOrEmpty(foundSource) ? "Windows Audio" : foundSource,
+                Title = string.IsNullOrEmpty(foundTitle)
+                    ? (_isAudioCurrentlyActive ? "System Audio Active" : "Ready for Music")
+                    : foundTitle,
+                Artist = string.IsNullOrEmpty(foundArtist)
+                    ? (_isAudioCurrentlyActive ? "WASAPI Loopback Stream" : "Play any song in Spotify or Browser")
+                    : foundArtist,
+                PlaybackStatus = _isAudioCurrentlyActive ? PlaybackState.Playing : PlaybackState.Paused,
+                Position = TimeSpan.Zero,
+                Duration = TimeSpan.Zero
+            };
+
+            CurrentSession = snap;
+            SessionUpdated?.Invoke(this, snap);
+        }
+
+        private static string CleanSourceAppName(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "Media";
+            if (raw.Contains("Spotify", StringComparison.OrdinalIgnoreCase)) return "Spotify";
+            if (raw.Contains("Chrome", StringComparison.OrdinalIgnoreCase)) return "Chrome";
+            if (raw.Contains("Brave", StringComparison.OrdinalIgnoreCase)) return "Brave";
+            if (raw.Contains("Edge", StringComparison.OrdinalIgnoreCase)) return "Edge";
+            if (raw.Contains("Firefox", StringComparison.OrdinalIgnoreCase)) return "Firefox";
+            int bang = raw.IndexOf('!');
+            if (bang > 0) raw = raw.Substring(0, bang);
+            int dot = raw.LastIndexOf('.');
+            if (dot > 0 && dot < raw.Length - 1) raw = raw.Substring(dot + 1);
+            return raw;
         }
 
         public static bool TryParseMediaWindowTitle(string processName, string windowTitle, out string artist, out string title)
