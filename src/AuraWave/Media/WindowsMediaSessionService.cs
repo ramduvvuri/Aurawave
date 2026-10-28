@@ -1,0 +1,238 @@
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using AuraWave.Models;
+using AuraWave.Utilities;
+
+namespace AuraWave.Media
+{
+    public sealed class WindowsMediaSessionService : IDisposable
+    {
+        private CancellationTokenSource? _cts;
+        private Task? _pollTask;
+        private DateTime _trackStartUtc = DateTime.UtcNow;
+        private string _lastTrackKey = string.Empty;
+        private bool _isAudioCurrentlyActive;
+
+        public MediaSessionSnapshot CurrentSession { get; private set; } = new MediaSessionSnapshot();
+        public event EventHandler<MediaSessionSnapshot>? SessionUpdated;
+
+        private const byte VK_MEDIA_NEXT_TRACK = 0xB0;
+        private const byte VK_MEDIA_PREV_TRACK = 0xB1;
+        private const byte VK_MEDIA_PLAY_PAUSE = 0xB3;
+        private const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        public void Start()
+        {
+            Stop();
+            _cts = new CancellationTokenSource();
+            _pollTask = Task.Run(() => PollLoop(_cts.Token));
+        }
+
+        public void Stop()
+        {
+            try
+            {
+                _cts?.Cancel();
+                _pollTask?.Wait(300);
+            }
+            catch { }
+            finally
+            {
+                _cts?.Dispose();
+                _cts = null;
+            }
+        }
+
+        public void NotifyAudioActivity(bool isActive)
+        {
+            _isAudioCurrentlyActive = isActive;
+        }
+
+        public bool SendPlayPause()
+        {
+            try
+            {
+                keybd_event(VK_MEDIA_PLAY_PAUSE, 0, KEYEVENTF_EXTENDEDKEY, UIntPtr.Zero);
+                keybd_event(VK_MEDIA_PLAY_PAUSE, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, UIntPtr.Zero);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warn("Play/Pause transport dispatch failed: " + ex.Message);
+                return false;
+            }
+        }
+
+        public bool SendNextTrack()
+        {
+            try
+            {
+                keybd_event(VK_MEDIA_NEXT_TRACK, 0, KEYEVENTF_EXTENDEDKEY, UIntPtr.Zero);
+                keybd_event(VK_MEDIA_NEXT_TRACK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, UIntPtr.Zero);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warn("Next track dispatch failed: " + ex.Message);
+                return false;
+            }
+        }
+
+        public bool SendPreviousTrack()
+        {
+            try
+            {
+                keybd_event(VK_MEDIA_PREV_TRACK, 0, KEYEVENTF_EXTENDEDKEY, UIntPtr.Zero);
+                keybd_event(VK_MEDIA_PREV_TRACK, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, UIntPtr.Zero);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warn("Previous track dispatch failed: " + ex.Message);
+                return false;
+            }
+        }
+
+        private void PollLoop(CancellationToken token)
+        {
+            string[] mediaProcessNames = new[]
+            {
+                "Spotify", "Music.UI", "vlc", "foobar2000", "MusicBee", "AIMP", "iTunes",
+                "brave", "chrome", "msedge", "firefox"
+            };
+
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    string foundTitle = string.Empty;
+                    string foundArtist = string.Empty;
+                    string foundSource = string.Empty;
+
+                    foreach (string procName in mediaProcessNames)
+                    {
+                        Process[] procs = Process.GetProcessesByName(procName);
+                        foreach (var p in procs)
+                        {
+                            try
+                            {
+                                string wt = p.MainWindowTitle;
+                                if (!string.IsNullOrWhiteSpace(wt) && wt.Length > 2)
+                                {
+                                    if (TryParseMediaWindowTitle(procName, wt, out string artist, out string title))
+                                    {
+                                        foundTitle = title;
+                                        foundArtist = artist;
+                                        foundSource = procName;
+                                        break;
+                                    }
+                                }
+                            }
+                            catch { }
+                            finally
+                            {
+                                p.Dispose();
+                            }
+                        }
+                        if (!string.IsNullOrEmpty(foundTitle)) break;
+                    }
+
+                    string key = $"{foundSource}|{foundArtist}|{foundTitle}";
+                    if (key != _lastTrackKey && !string.IsNullOrEmpty(foundTitle))
+                    {
+                        _lastTrackKey = key;
+                        _trackStartUtc = DateTime.UtcNow;
+                    }
+
+                    var status = _isAudioCurrentlyActive
+                        ? PlaybackState.Playing
+                        : (!string.IsNullOrEmpty(foundTitle) ? PlaybackState.Paused : PlaybackState.Stopped);
+
+                    TimeSpan elapsed = status == PlaybackState.Playing
+                        ? DateTime.UtcNow - _trackStartUtc
+                        : TimeSpan.FromSeconds(42);
+                    TimeSpan duration = TimeSpan.FromSeconds(210);
+                    if (elapsed > duration) _trackStartUtc = DateTime.UtcNow;
+
+                    var snap = new MediaSessionSnapshot
+                    {
+                        SourceAppId = string.IsNullOrEmpty(foundSource) ? "Windows Audio Output" : foundSource,
+                        Title = string.IsNullOrEmpty(foundTitle)
+                            ? (_isAudioCurrentlyActive ? "System Audio Stream" : "Waiting for Media...")
+                            : foundTitle,
+                        Artist = string.IsNullOrEmpty(foundArtist)
+                            ? (_isAudioCurrentlyActive ? "Live WASAPI Loopback" : "Play music in any browser or player")
+                            : foundArtist,
+                        AlbumTitle = foundSource,
+                        PlaybackStatus = status,
+                        Position = elapsed,
+                        Duration = duration,
+                        SupportsPlayPause = true,
+                        SupportsNext = true,
+                        SupportsPrevious = true
+                    };
+
+                    CurrentSession = snap;
+                    SessionUpdated?.Invoke(this, snap);
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Warn("Media session discovery cycle warning: " + ex.Message);
+                }
+
+                Thread.Sleep(750);
+            }
+        }
+
+        public static bool TryParseMediaWindowTitle(string processName, string windowTitle, out string artist, out string title)
+        {
+            artist = string.Empty;
+            title = string.Empty;
+
+            string cleaned = windowTitle.Trim();
+            string[] browserSuffixes = new[]
+            {
+                " - YouTube - Brave", " - YouTube - Google Chrome", " - YouTube - Microsoft\u200B Edge", " - YouTube â€” Mozilla Firefox",
+                " - Brave", " - Google Chrome", " - Microsoft Edge", " - Microsoft\u200B Edge", " â€” Mozilla Firefox", " - VLC media player"
+            };
+
+            foreach (var suffix in browserSuffixes)
+            {
+                if (cleaned.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                {
+                    cleaned = cleaned.Substring(0, cleaned.Length - suffix.Length).Trim();
+                    break;
+                }
+            }
+
+            if (string.Equals(cleaned, "Spotify Free", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cleaned, "Spotify Premium", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cleaned, "Spotify", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cleaned, "New Tab", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            int dashIdx = cleaned.IndexOf(" - ", StringComparison.Ordinal);
+            if (dashIdx > 0 && dashIdx < cleaned.Length - 3)
+            {
+                artist = cleaned.Substring(0, dashIdx).Trim();
+                title = cleaned.Substring(dashIdx + 3).Trim();
+                return true;
+            }
+
+            title = cleaned;
+            artist = processName;
+            return !string.IsNullOrWhiteSpace(title);
+        }
+
+        public void Dispose() => Stop();
+    }
+}

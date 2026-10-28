@@ -1,0 +1,8 @@
+AuraWave Third-Party Software Notices
+=====================================
+
+1. .NET Runtime & WPF Framework (Microsoft Corporation)
+   Licensed under the MIT License.
+
+2. xUnit.net (Test Suite Only)
+   Licensed under the Apache License, Version 2.0.
