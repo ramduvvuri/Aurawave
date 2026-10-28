@@ -141,8 +141,8 @@ namespace AuraWave.Models
     {
         public double Left { get; set; } = -1;
         public double Top { get; set; } = -1;
-        public double Width { get; set; } = 960;
-        public double Height { get; set; } = 88;
+        public double Width { get; set; } = 1020;
+        public double Height { get; set; } = 90;
         public string MonitorDeviceName { get; set; } = string.Empty;
 
         public WidgetGeometry Clone() => (WidgetGeometry)MemberwiseClone();
@@ -165,7 +165,7 @@ namespace AuraWave.Models
             Top = Math.Clamp(Top, workTop, Math.Max(workTop, workTop + workHeight - Height));
         }
 
-        public static WidgetGeometry CalculateBottomCenterBar(double workLeft, double workTop, double workWidth, double workHeight, double desiredWidth = 960, double desiredHeight = 88, double taskbarClearance = 14)
+        public static WidgetGeometry CalculateBottomCenterBar(double workLeft, double workTop, double workWidth, double workHeight, double desiredWidth = 1020, double desiredHeight = 90, double taskbarClearance = 14)
         {
             double w = Math.Clamp(desiredWidth, 640, Math.Max(640, workWidth - 40));
             double h = Math.Clamp(desiredHeight, 80, 120);

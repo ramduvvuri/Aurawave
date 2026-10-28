@@ -9,7 +9,7 @@ namespace AuraWave.Configuration
 {
     public sealed class AuraWaveConfig
     {
-        public int ConfigSchemaVersion { get; set; } = 3;
+        public int ConfigSchemaVersion { get; set; } = 4;
 
         // Appearance (Defaults to 1:1 Emerald Capsule)
         public ThemePreset SelectedTheme { get; set; } = ThemePreset.EmeraldCapsule;
@@ -73,11 +73,11 @@ namespace AuraWave.Configuration
         {
             Left = -1,
             Top = -1,
-            Width = 960,
-            Height = 88
+            Width = 1020,
+            Height = 90
         };
         public bool ShowAlbumArt { get; set; } = true;
-        public bool EnableRotatingDisc { get; set; } = false;
+        public bool EnableRotatingDisc { get; set; } = true;
         public bool ShowTrackTitle { get; set; } = true;
         public bool ShowArtistName { get; set; } = true;
         public bool ShowEmbeddedSpectrum { get; set; } = true;
@@ -120,7 +120,7 @@ namespace AuraWave.Configuration
             AudioStopInactivityDelaySeconds = Math.Clamp(AudioStopInactivityDelaySeconds, 2, 120);
 
             WaveformGeometry ??= new WidgetGeometry { Left = -1, Top = -1, Width = 760, Height = 120 };
-            NowPlayingGeometry ??= new WidgetGeometry { Left = -1, Top = -1, Width = 960, Height = 88 };
+            NowPlayingGeometry ??= new WidgetGeometry { Left = -1, Top = -1, Width = 1020, Height = 90 };
 
             WaveformGeometry.Width = Math.Clamp(WaveformGeometry.Width, 240, 3840);
             WaveformGeometry.Height = Math.Clamp(WaveformGeometry.Height, 60, 900);
@@ -179,14 +179,15 @@ namespace AuraWave.Configuration
                     if (loaded == null)
                         throw new InvalidDataException("Deserialized configuration was null.");
 
-                    if (loaded.ConfigSchemaVersion < 3)
+                    if (loaded.ConfigSchemaVersion < 4)
                     {
-                        loaded.ConfigSchemaVersion = 3;
+                        loaded.ConfigSchemaVersion = 4;
+                        loaded.EnableRotatingDisc = true;
                         loaded.WaveformVisible = false;
                         loaded.AutoShowWaveformOnAudio = false;
                         loaded.SelectedTheme = ThemePreset.EmeraldCapsule;
                         loaded.NowPlayingVisible = true;
-                        loaded.NowPlayingGeometry = new WidgetGeometry { Left = -1, Top = -1, Width = 960, Height = 88 };
+                        loaded.NowPlayingGeometry = new WidgetGeometry { Left = -1, Top = -1, Width = 1020, Height = 90 };
                     }
 
                     loaded.ValidateAndClamp();

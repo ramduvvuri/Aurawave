@@ -142,8 +142,8 @@ namespace AuraWave.Tests
             Assert.False(cfg.AutoShowWaveformOnAudio);
             Assert.True(cfg.NowPlayingVisible);
             Assert.True(cfg.ShowEmbeddedSpectrum);
-            Assert.Equal(960, cfg.NowPlayingGeometry.Width);
-            Assert.Equal(88, cfg.NowPlayingGeometry.Height);
+            Assert.Equal(1020, cfg.NowPlayingGeometry.Width);
+            Assert.Equal(90, cfg.NowPlayingGeometry.Height);
             Assert.Equal(ThemePreset.EmeraldCapsule, cfg.SelectedTheme);
         }
 
@@ -188,11 +188,11 @@ namespace AuraWave.Tests
         [Fact]
         public void Test12_CalculateBottomCenterBar_PositionsHorizontallyCenteredAboveTaskbar()
         {
-            var geom = WidgetGeometry.CalculateBottomCenterBar(0, 0, 1920, 1032, 960, 88, 14);
-            Assert.Equal(960, geom.Width);
-            Assert.Equal(88, geom.Height);
-            Assert.Equal(480, geom.Left); // (1920 - 960) / 2
-            Assert.Equal(930, geom.Top);  // 1032 - 88 - 14
+            var geom = WidgetGeometry.CalculateBottomCenterBar(0, 0, 1920, 1032, 1020, 90, 14);
+            Assert.Equal(1020, geom.Width);
+            Assert.Equal(90, geom.Height);
+            Assert.Equal(450, geom.Left); // (1920 - 960) / 2
+            Assert.Equal(928, geom.Top);  // 1032 - 88 - 14
         }
 
         [Fact]

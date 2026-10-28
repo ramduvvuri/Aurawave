@@ -18,16 +18,12 @@ using AuraWave.Themes;
 
 namespace AuraWave.Windows
 {
-    /// <summary>
-    /// Live 28-bar embedded audio spectrum with smooth attack/decay and the exact
-    /// emerald-to-sage-to-warm-taupe color grading from the reference image.
-    /// </summary>
     public sealed class EmbeddedMiniSpectrumControl : FrameworkElement
     {
         private readonly double[] _smoothedBars = new double[28];
-        private Color _emeraldBright = Color.FromRgb(56, 232, 166);
-        private Color _emeraldMid = Color.FromRgb(118, 192, 166);
-        private Color _warmTail = Color.FromRgb(138, 124, 116);
+        private Color _emeraldBright = Color.FromRgb(64, 242, 176);
+        private Color _emeraldMid = Color.FromRgb(132, 208, 182);
+        private Color _warmTail = Color.FromRgb(156, 144, 136);
         private double _intensity = 1.25;
         private double _idlePhase;
 
@@ -35,11 +31,11 @@ namespace AuraWave.Windows
         {
             var bands = frame.FrequencyBands ?? Array.Empty<float>();
             var pal = ThemeManager.GetActivePalette(cfg);
-            _emeraldBright = ThemeManager.ParseColor(pal.PrimaryHex, Color.FromRgb(56, 232, 166));
-            _emeraldMid = Color.FromRgb(118, 192, 166);
-            _warmTail = Color.FromRgb(138, 124, 116);
+            _emeraldBright = ThemeManager.ParseColor(pal.PrimaryHex, Color.FromRgb(64, 242, 176));
+            _emeraldMid = Color.FromRgb(132, 208, 182);
+            _warmTail = Color.FromRgb(156, 144, 136);
             _intensity = cfg.VisualizerIntensity;
-            _idlePhase = (_idlePhase + 0.08) % (Math.PI * 2.0);
+            _idlePhase = (_idlePhase + 0.07) % (Math.PI * 2.0);
 
             int barCount = _smoothedBars.Length;
             for (int i = 0; i < barCount; i++)
@@ -54,14 +50,12 @@ namespace AuraWave.Windows
                 double target;
                 if (frame.IsAudioActive || raw > 0.004f)
                 {
-                    // Boost midrange & treble slightly so all 28 bars dance vividly
                     double freqWeight = 1.0 + (i / (double)barCount) * 0.65;
-                    target = Math.Clamp(raw * _intensity * freqWeight * 1.45, 0.08, 1.0);
+                    target = Math.Clamp(raw * _intensity * freqWeight * 1.5, 0.10, 1.0);
                 }
                 else
                 {
-                    // Gentle organic breathing at rest
-                    target = 0.10 + 0.05 * Math.Sin(_idlePhase + i * 0.35);
+                    target = 0.12 + 0.05 * Math.Sin(_idlePhase + i * 0.35);
                 }
 
                 double prev = _smoothedBars[i];
@@ -81,32 +75,32 @@ namespace AuraWave.Windows
 
             int barCount = _smoothedBars.Length;
             double step = w / barCount;
-            double barW = 2.8;
+            double barW = 3.0;
             double baselineY = h - 1.0;
             double maxBarH = h - 2.0;
 
             var brushEmerald = new LinearGradientBrush(
-                Color.FromRgb(90, 250, 190),
+                Color.FromRgb(110, 255, 204),
                 _emeraldBright,
                 new Point(0, 0),
                 new Point(0, 1));
             brushEmerald.Freeze();
 
-            var brushMid = new SolidColorBrush(Color.FromArgb(230, _emeraldMid.R, _emeraldMid.G, _emeraldMid.B));
+            var brushMid = new SolidColorBrush(Color.FromArgb(240, _emeraldMid.R, _emeraldMid.G, _emeraldMid.B));
             brushMid.Freeze();
 
-            var brushTail = new SolidColorBrush(Color.FromArgb(195, _warmTail.R, _warmTail.G, _warmTail.B));
+            var brushTail = new SolidColorBrush(Color.FromArgb(210, _warmTail.R, _warmTail.G, _warmTail.B));
             brushTail.Freeze();
 
             for (int i = 0; i < barCount; i++)
             {
                 double ratio = Math.Clamp(_smoothedBars[i], 0.10, 1.0);
-                double barH = Math.Clamp(ratio * maxBarH, 2.8, maxBarH);
+                double barH = Math.Clamp(ratio * maxBarH, 3.0, maxBarH);
                 double x = i * step + (step - barW) * 0.5;
                 double y = baselineY - barH;
 
                 Brush b = i < 9 ? brushEmerald : (i < 18 ? brushMid : brushTail);
-                dc.DrawRoundedRectangle(b, null, new Rect(x, y, barW, barH), 1.4, 1.4);
+                dc.DrawRoundedRectangle(b, null, new Rect(x, y, barW, barH), 1.5, 1.5);
             }
         }
     }
@@ -132,8 +126,8 @@ namespace AuraWave.Windows
 
         public EmeraldVolumeBarControl()
         {
-            Width = 54;
-            Height = 18;
+            Width = 60;
+            Height = 20;
             Cursor = Cursors.Hand;
             ToolTip = "System Output Volume (Drag or Scroll)";
         }
@@ -181,7 +175,7 @@ namespace AuraWave.Windows
 
         private void UpdateFromPoint(Point pt)
         {
-            double pad = 4.5;
+            double pad = 5.0;
             double usable = Math.Max(1.0, ActualWidth - pad * 2.0);
             Value = Math.Clamp((pt.X - pad) / usable, 0.0, 1.0);
             VolumeChanged?.Invoke(this, _value);
@@ -196,35 +190,35 @@ namespace AuraWave.Windows
 
             dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, w, h));
 
-            double pad = 4.5;
+            double pad = 5.0;
             double trackW = w - pad * 2.0;
-            double trackH = 3.2;
+            double trackH = 3.6;
             double trackY = (h - trackH) * 0.5;
 
-            var bgTrackBrush = new SolidColorBrush(Color.FromRgb(42, 58, 53));
+            var bgTrackBrush = new SolidColorBrush(Color.FromRgb(48, 68, 62));
             bgTrackBrush.Freeze();
-            dc.DrawRoundedRectangle(bgTrackBrush, null, new Rect(pad, trackY, trackW, trackH), 1.6, 1.6);
+            dc.DrawRoundedRectangle(bgTrackBrush, null, new Rect(pad, trackY, trackW, trackH), 1.8, 1.8);
 
             double fillW = Math.Clamp(trackW * _value, 0.0, trackW);
-            var fillBrush = new SolidColorBrush(Color.FromRgb(56, 232, 166));
+            var fillBrush = new SolidColorBrush(Color.FromRgb(64, 242, 176));
             fillBrush.Freeze();
             if (fillW > 0.5)
             {
-                dc.DrawRoundedRectangle(fillBrush, null, new Rect(pad, trackY, fillW, trackH), 1.6, 1.6);
+                dc.DrawRoundedRectangle(fillBrush, null, new Rect(pad, trackY, fillW, trackH), 1.8, 1.8);
             }
 
             double thumbX = pad + fillW;
             double thumbY = h * 0.5;
 
             var glowBrush = new RadialGradientBrush(
-                Color.FromArgb(120, 82, 246, 184),
-                Color.FromArgb(0, 56, 232, 166));
+                Color.FromArgb(145, 100, 255, 198),
+                Color.FromArgb(0, 64, 242, 176));
             glowBrush.Freeze();
-            dc.DrawEllipse(glowBrush, null, new Point(thumbX, thumbY), 7.5, 7.5);
+            dc.DrawEllipse(glowBrush, null, new Point(thumbX, thumbY), 8.5, 8.5);
 
-            var thumbBrush = new SolidColorBrush(Color.FromRgb(82, 246, 184));
+            var thumbBrush = new SolidColorBrush(Color.FromRgb(120, 255, 206));
             thumbBrush.Freeze();
-            dc.DrawEllipse(thumbBrush, null, new Point(thumbX, thumbY), 4.0, 4.0);
+            dc.DrawEllipse(thumbBrush, null, new Point(thumbX, thumbY), 4.4, 4.4);
         }
     }
 
@@ -274,20 +268,23 @@ namespace AuraWave.Windows
         private bool _isInteractingWithVolume;
         private bool _isDraggingWindow;
         private bool _isMuted;
+        private bool _isCircularArtMode = true;
+        private RectangleGeometry _artClipGeometry;
         private double _discAngle;
         private byte[]? _lastAppliedArtworkBytes;
 
-        private const string GeometryHeartOutline = "M 8,13.6 C 7.4,13.1 2,8.8 2,5.3 C 2,3.4 3.5,2 5.3,2 C 6.4,2 7.4,2.5 8,3.4 C 8.6,2.5 9.6,2 10.7,2 C 12.5,2 14,3.4 14,5.3 C 14,8.8 8.6,13.1 8,13.6 Z";
-        private const string GeometryPrevTrack = "M 3.5,3.5 L 5.2,3.5 L 5.2,12.5 L 3.5,12.5 Z M 6.2,8 L 12.5,3.5 L 12.5,12.5 Z";
-        private const string GeometryNextTrack = "M 10.8,3.5 L 12.5,3.5 L 12.5,12.5 L 10.8,12.5 Z M 9.8,8 L 3.5,3.5 L 3.5,12.5 Z";
-        private const string GeometryPauseBars = "M 4.4,3.2 L 6.8,3.2 L 6.8,12.8 L 4.4,12.8 Z M 9.2,3.2 L 11.6,3.2 L 11.6,12.8 L 9.2,12.8 Z";
-        private const string GeometryPlayTriangle = "M 5.2,3.2 L 12.8,8.0 L 5.2,12.8 Z";
-        private const string GeometrySpeakerOn = "M 2.5,6.0 L 5.0,6.0 L 8.2,3.4 L 8.2,12.6 L 5.0,10.0 L 2.5,10.0 Z M 10.2,5.4 C 11.4,6.4 11.4,9.6 10.2,10.6 M 11.8,3.8 C 13.8,5.6 13.8,10.4 11.8,12.2";
-        private const string GeometrySpeakerMuted = "M 2.5,6.0 L 5.0,6.0 L 8.2,3.4 L 8.2,12.6 L 5.0,10.0 L 2.5,10.0 Z M 10.4,5.6 L 13.8,10.4 M 13.8,5.6 L 10.4,10.4";
-        private const string GeometryQueueList = "M 2.5,4.2 L 3.8,4.2 M 5.6,4.2 L 13.5,4.2 M 2.5,8.0 L 3.8,8.0 M 5.6,8.0 L 13.5,8.0 M 2.5,11.8 L 3.8,11.8 M 5.6,11.8 L 13.5,11.8";
-        private const string GeometryGearPetal = "M 8,5.6 C 6.67,5.6 5.6,6.67 5.6,8 C 5.6,9.33 6.67,10.4 8,10.4 C 9.33,10.4 10.4,9.33 10.4,8 C 10.4,6.67 9.33,5.6 8,5.6 Z M 8,2.0 C 8.7,2.0 9.2,2.5 9.3,3.2 C 9.8,3.4 10.3,3.7 10.7,4.1 C 11.3,3.8 12.0,4.0 12.4,4.6 C 12.7,5.2 12.5,5.9 12.0,6.3 C 12.2,6.8 12.3,7.4 12.3,8.0 C 12.3,8.6 12.2,9.2 12.0,9.7 C 12.5,10.1 12.7,10.8 12.4,11.4 C 12.0,12.0 11.3,12.2 10.7,11.9 C 10.3,12.3 9.8,12.6 9.3,12.8 C 9.2,13.5 8.7,14.0 8,14.0 C 7.3,14.0 6.8,13.5 6.7,12.8 C 6.2,12.6 5.7,12.3 5.3,11.9 C 4.7,12.2 4.0,12.0 3.6,11.4 C 3.3,10.8 3.5,10.1 4.0,9.7 C 3.8,9.2 3.7,8.6 3.7,8.0 C 3.7,7.4 3.8,6.8 4.0,6.3 C 3.5,5.9 3.3,5.2 3.6,4.6 C 4.0,4.0 4.7,3.8 5.3,4.1 C 5.7,3.7 6.2,3.4 6.7,3.2 C 6.8,2.5 7.3,2.0 8,2.0 Z";
-        private const string GeometryPushPin = "M 5.2,2.2 L 10.8,2.2 L 10.8,3.6 L 9.8,4.4 L 9.8,7.6 L 11.4,9.2 L 11.4,10.4 L 8.7,10.4 L 8.7,14.2 L 7.3,14.2 L 7.3,10.4 L 4.6,10.4 L 4.6,9.2 L 6.2,7.6 L 6.2,4.4 L 5.2,3.6 Z";
-        private const string GeometryCloseX = "M 4.6,4.6 L 11.4,11.4 M 11.4,4.6 L 4.6,11.4";
+        // Studio-Grade 24x24 Cubic Bezier Vector Icon Geometries
+        private const string GeometryHeartOutline = "M 12,21.35 L 10.55,20.03 C 5.4,15.36 2,12.27 2,8.5 C 2,5.41 4.42,3 7.5,3 C 9.24,3 10.91,3.81 12,5.08 C 13.09,3.81 14.76,3 16.5,3 C 19.58,3 22,5.41 22,8.5 C 22,12.27 18.6,15.36 13.45,20.03 L 12,21.35 Z";
+        private const string GeometryPrevTrack = "M 6,6 C 6,5.45 6.45,5 7,5 C 7.55,5 8,5.45 8,6 L 8,18 C 8,18.55 7.55,19 7,19 C 6.45,19 6,18.55 6,18 Z M 10.2,12.8 C 9.65,12.4 9.65,11.6 10.2,11.2 L 17.4,6.1 C 18.06,5.63 19,6.1 19,6.9 L 19,17.1 C 19,17.9 18.06,18.37 17.4,17.9 Z";
+        private const string GeometryNextTrack = "M 16,6 C 16,5.45 16.45,5 17,5 C 17.55,5 18,5.45 18,6 L 18,18 C 18,18.55 17.55,19 17,19 C 16.45,19 16,18.55 16,18 Z M 13.8,12.8 L 6.6,17.9 C 5.94,18.37 5,17.9 5,17.1 L 5,6.9 C 5,6.1 5.94,5.63 6.6,6.1 L 13.8,11.2 C 14.35,11.6 14.35,12.4 13.8,12.8 Z";
+        private const string GeometryPauseBars = "M 7,5 C 6.3,5 5.8,5.5 5.8,6.2 L 5.8,17.8 C 5.8,18.5 6.3,19 7,19 L 9.2,19 C 9.9,19 10.4,18.5 10.4,17.8 L 10.4,6.2 C 10.4,5.5 9.9,5 9.2,5 Z M 14.8,5 C 14.1,5 13.6,5.5 13.6,6.2 L 13.6,17.8 C 13.6,18.5 14.1,19 14.8,19 L 17,19 C 17.7,19 18.2,18.5 18.2,17.8 L 18.2,6.2 C 18.2,5.5 17.7,5 17,5 Z";
+        private const string GeometryPlayTriangle = "M 7.5,5.2 C 7.5,4.35 8.45,3.85 9.15,4.32 L 18.6,10.82 C 19.22,11.25 19.22,12.15 18.6,12.58 L 9.15,19.08 C 8.45,19.55 7.5,19.05 7.5,18.2 Z";
+        private const string GeometrySpeakerOn = "M 11,5 L 6,9 L 2,9 L 2,15 L 6,15 L 11,19 L 11,5 Z M 15.54,8.46 C 16.48,9.4 17,10.67 17,12 C 17,13.33 16.48,14.6 15.54,15.54 M 19.07,4.93 C 20.95,6.81 22,9.35 22,12 C 22,14.65 20.95,17.19 19.07,19.07";
+        private const string GeometrySpeakerMuted = "M 11,5 L 6,9 L 2,9 L 2,15 L 6,15 L 11,19 L 11,5 Z M 22,9 L 16,15 M 16,9 L 22,15";
+        private const string GeometryQueueList = "M 8,6 L 21,6 M 8,12 L 21,12 M 8,18 L 21,18 M 3.5,6 L 3.6,6 M 3.5,12 L 3.6,12 M 3.5,18 L 3.6,18";
+        private const string GeometryGearPetal = "M 12,15.2 C 13.77,15.2 15.2,13.77 15.2,12 C 15.2,10.23 13.77,8.8 12,8.8 C 10.23,8.8 8.8,10.23 8.8,12 C 8.8,13.77 10.23,15.2 12,15.2 Z M 19.4,15 C 19.2,15.3 19.3,15.7 19.5,16 L 19.6,16.1 C 20,16.5 20,17.1 19.6,17.5 L 17.5,19.6 C 17.1,20 16.5,20 16.1,19.6 L 16,19.5 C 15.7,19.3 15.3,19.2 15,19.4 C 14.7,19.5 14.5,19.8 14.5,20.2 L 14.5,20.5 C 14.5,21.1 14,21.5 13.5,21.5 L 10.5,21.5 C 10,21.5 9.5,21.1 9.5,20.5 L 9.5,20.2 C 9.5,19.8 9.3,19.5 9,19.4 C 8.7,19.2 8.3,19.3 8,19.5 L 7.9,19.6 C 7.5,20 6.9,20 6.5,19.6 L 4.4,17.5 C 4,17.1 4,16.5 4.4,16.1 L 4.5,16 C 4.7,15.7 4.8,15.3 4.6,15 C 4.5,14.7 4.2,14.5 3.8,14.5 L 3.5,14.5 C 2.9,14.5 2.5,14 2.5,13.5 L 2.5,10.5 C 2.5,10 2.9,9.5 3.5,9.5 L 3.8,9.5 C 4.2,9.5 4.5,9.3 4.6,9 C 4.8,8.7 4.7,8.3 4.5,8 L 4.4,7.9 C 4,7.5 4,6.9 4.4,6.5 L 6.5,4.4 C 6.9,4 7.5,4 7.9,4.4 L 8,4.5 C 8.3,4.7 8.7,4.8 9,4.6 C 9.3,4.5 9.5,4.2 9.5,3.8 L 9.5,3.5 C 9.5,2.9 10,2.5 10.5,2.5 L 13.5,2.5 C 14,2.5 14.5,2.9 14.5,3.5 L 14.5,3.8 C 14.5,4.2 14.7,4.5 15,4.6 C 15.3,4.8 15.7,4.7 16,4.5 L 16.1,4.4 C 16.5,4 17.1,4 17.5,4.4 L 19.6,6.5 C 20,6.9 20,7.5 19.6,7.9 L 19.5,8 C 19.3,8.3 19.2,8.7 19.4,9 C 19.5,9.3 19.8,9.5 20.2,9.5 L 20.5,9.5 C 21.1,9.5 21.5,10 21.5,10.5 L 21.5,13.5 C 21.5,14 21.1,14.5 20.5,14.5 L 20.2,14.5 C 19.8,14.5 19.5,14.7 19.4,15 Z";
+        private const string GeometryPushPin = "M 9,3 L 15,3 C 15.55,3 16,3.45 16,4 C 16,4.55 15.55,5 15,5 L 14,5 L 14,10 L 16.6,12.6 C 16.85,12.85 17,13.2 17,13.55 C 17,14.35 16.35,15 15.55,15 L 13,15 L 13,21 C 13,21.55 12.55,22 12,22 C 11.45,22 11,21.55 11,21 L 11,15 L 8.45,15 C 7.65,15 7,14.35 7,13.55 C 7,13.2 7.15,12.85 7.4,12.6 L 10,10 L 10,5 L 9,5 C 8.45,5 8,4.55 8,4 C 8,3.45 8.45,3 9,3 Z";
+        private const string GeometryCloseX = "M 18,6 L 6,18 M 6,6 L 18,18";
 
         public event EventHandler? OpenSettingsRequested;
         public event EventHandler? EditModeSelected;
@@ -314,7 +311,7 @@ namespace AuraWave.Windows
             UseLayoutRounding = true;
             SnapsToDevicePixels = true;
 
-            _discRotateTransform = new RotateTransform(0, 29, 29);
+            _discRotateTransform = new RotateTransform(0, 28, 28);
             _fallbackSunsetBitmap = GeneratePhotographicSunsetBitmap(112, 112);
             _artworkImageBrush = new ImageBrush(_fallbackSunsetBitmap)
             {
@@ -322,15 +319,23 @@ namespace AuraWave.Windows
             };
             _artworkHostGrid = CreateAlbumArtworkBox();
 
+            // High-Contrast Popping Track Title + Artist
             _titleText = new TextBlock
             {
                 Text = "Ready for Music",
                 FontFamily = new FontFamily("Segoe UI Variable Display, Segoe UI"),
-                Foreground = new SolidColorBrush(Color.FromRgb(244, 249, 247)),
-                FontSize = 14.5,
-                FontWeight = FontWeights.SemiBold,
+                Foreground = Brushes.White,
+                FontSize = 15.0,
+                FontWeight = FontWeights.Bold,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                MaxWidth = 205
+                MaxWidth = 215,
+                Effect = new DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    BlurRadius = 6,
+                    ShadowDepth = 1,
+                    Opacity = 0.85
+                }
             };
 
             _spotifySourceBadge = CreateSpotifySourceBadge();
@@ -339,11 +344,11 @@ namespace AuraWave.Windows
             {
                 Text = "Play any song",
                 FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI"),
-                Foreground = new SolidColorBrush(Color.FromRgb(145, 166, 158)),
-                FontSize = 12.0,
-                FontWeight = FontWeights.Normal,
+                Foreground = new SolidColorBrush(Color.FromRgb(196, 218, 210)),
+                FontSize = 12.5,
+                FontWeight = FontWeights.Medium,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                MaxWidth = 180,
+                MaxWidth = 190,
                 VerticalAlignment = VerticalAlignment.Center
             };
 
@@ -359,34 +364,35 @@ namespace AuraWave.Windows
             var trackInfoStack = new StackPanel
             {
                 VerticalAlignment = VerticalAlignment.Center,
-                Width = 205,
-                Margin = new Thickness(14, 0, 14, 0)
+                Width = 215,
+                Margin = new Thickness(16, 0, 18, 0)
             };
             trackInfoStack.Children.Add(_titleText);
             trackInfoStack.Children.Add(artistRow);
 
+            // Spacious 28-Bar Spectrum + Seekable Progress + Timeline
             _miniSpectrum = new EmbeddedMiniSpectrumControl
             {
-                Width = 192,
-                Height = 22,
+                Width = 204,
+                Height = 23,
                 Margin = new Thickness(0, 2, 0, 5)
             };
 
             _progressFillBorder = new Border
             {
                 HorizontalAlignment = HorizontalAlignment.Left,
-                Width = 54,
-                Height = 3.5,
-                CornerRadius = new CornerRadius(1.75),
-                Background = new SolidColorBrush(Color.FromRgb(56, 232, 166))
+                Width = 58,
+                Height = 3.8,
+                CornerRadius = new CornerRadius(1.9),
+                Background = new SolidColorBrush(Color.FromRgb(64, 242, 176))
             };
 
             _progressTrackBorder = new Border
             {
-                Width = 192,
-                Height = 3.5,
-                CornerRadius = new CornerRadius(1.75),
-                Background = new SolidColorBrush(Color.FromRgb(42, 58, 53)),
+                Width = 204,
+                Height = 3.8,
+                CornerRadius = new CornerRadius(1.9),
+                Background = new SolidColorBrush(Color.FromRgb(46, 66, 60)),
                 Cursor = Cursors.Hand,
                 ToolTip = "Click to Seek Timeline Position",
                 Child = _progressFillBorder
@@ -397,9 +403,9 @@ namespace AuraWave.Windows
             {
                 Text = "0:00 / 0:00",
                 FontFamily = new FontFamily("Segoe UI Variable Text, Segoe UI"),
-                Foreground = new SolidColorBrush(Color.FromRgb(145, 166, 158)),
-                FontSize = 10.5,
-                FontWeight = FontWeights.Medium,
+                Foreground = new SolidColorBrush(Color.FromRgb(186, 210, 202)),
+                FontSize = 11.0,
+                FontWeight = FontWeights.SemiBold,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(0, 4, 0, 0)
             };
@@ -408,18 +414,18 @@ namespace AuraWave.Windows
             {
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Width = 196,
-                Margin = new Thickness(2, 2, 16, 0)
+                Width = 208,
+                Margin = new Thickness(4, 2, 20, 0)
             };
             _spectrumAndProgressPanel.Children.Add(_miniSpectrum);
             _spectrumAndProgressPanel.Children.Add(_progressTrackBorder);
             _spectrumAndProgressPanel.Children.Add(_timelineText);
 
-            // 9 Action Controls
-            _favBtn = CreateVectorCircleButton(GeometryHeartOutline, "Save / Remove Track in AuraWave Favourites", 34, false, true, out _favIconPath);
+            // 9 Rich Studio Vector Controls with Generous Spacing
+            _favBtn = CreateVectorCircleButton(GeometryHeartOutline, "Save / Remove Track in AuraWave Favourites", 36, 15.5, false, true, out _favIconPath);
             _favBtn.Click += OnFavouriteButtonClick;
 
-            _prevBtn = CreateVectorCircleButton(GeometryPrevTrack, "Previous Track", 35, true, false, out _);
+            _prevBtn = CreateVectorCircleButton(GeometryPrevTrack, "Previous Track", 36, 15.5, true, false, out _);
             _prevBtn.Click += (_, _) =>
             {
                 RegisterUserInteraction();
@@ -429,9 +435,9 @@ namespace AuraWave.Windows
             _playPauseIconPath = new System.Windows.Shapes.Path
             {
                 Data = Geometry.Parse(GeometryPauseBars),
-                Fill = new SolidColorBrush(Color.FromRgb(6, 20, 16)),
-                Width = 15,
-                Height = 15,
+                Fill = new SolidColorBrush(Color.FromRgb(5, 18, 14)),
+                Width = 17,
+                Height = 17,
                 Stretch = Stretch.Uniform,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
@@ -439,19 +445,19 @@ namespace AuraWave.Windows
 
             _playPauseBtn = new Button
             {
-                Width = 46,
-                Height = 46,
-                Margin = new Thickness(5, 0, 5, 0),
+                Width = 48,
+                Height = 48,
+                Margin = new Thickness(7, 0, 7, 0),
                 ToolTip = "Play / Pause Active Media Session",
                 Cursor = Cursors.Hand,
                 Template = CreateEmeraldPlayButtonTemplate(),
                 Content = _playPauseIconPath,
                 Effect = new DropShadowEffect
                 {
-                    Color = Color.FromRgb(56, 232, 166),
-                    BlurRadius = 18,
+                    Color = Color.FromRgb(64, 242, 176),
+                    BlurRadius = 20,
                     ShadowDepth = 0,
-                    Opacity = 0.55
+                    Opacity = 0.62
                 }
             };
             _playPauseBtn.Click += (_, _) =>
@@ -460,7 +466,7 @@ namespace AuraWave.Windows
                 _mediaService.SendPlayPause();
             };
 
-            _nextBtn = CreateVectorCircleButton(GeometryNextTrack, "Next Track", 35, true, false, out _);
+            _nextBtn = CreateVectorCircleButton(GeometryNextTrack, "Next Track", 36, 15.5, true, false, out _);
             _nextBtn.Click += (_, _) =>
             {
                 RegisterUserInteraction();
@@ -470,11 +476,14 @@ namespace AuraWave.Windows
             _speakerIconPath = new System.Windows.Shapes.Path
             {
                 Data = Geometry.Parse(GeometrySpeakerOn),
-                Stroke = new SolidColorBrush(Color.FromRgb(226, 238, 233)),
-                StrokeThickness = 1.35,
-                Fill = new SolidColorBrush(Color.FromRgb(226, 238, 233)),
-                Width = 14,
-                Height = 14,
+                Stroke = new SolidColorBrush(Color.FromRgb(244, 250, 248)),
+                StrokeThickness = 1.75,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                StrokeLineJoin = PenLineJoin.Round,
+                Fill = new SolidColorBrush(Color.FromRgb(244, 250, 248)),
+                Width = 15.5,
+                Height = 15.5,
                 Stretch = Stretch.Uniform,
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -487,7 +496,7 @@ namespace AuraWave.Windows
                 BorderThickness = new Thickness(0),
                 Cursor = Cursors.Hand,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(2, 0, 4, 0),
+                Margin = new Thickness(2, 0, 6, 0),
                 Template = CreateTransparentButtonTemplate()
             };
             _muteBtn.Click += (_, _) =>
@@ -527,19 +536,19 @@ namespace AuraWave.Windows
 
             _volumePillBorder = new Border
             {
-                Height = 34,
-                CornerRadius = new CornerRadius(17),
-                Background = new SolidColorBrush(Color.FromArgb(195, 13, 25, 22)),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(65, 145, 166, 158)),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(9, 0, 10, 0),
-                Margin = new Thickness(5, 0, 5, 0),
+                Height = 36,
+                CornerRadius = new CornerRadius(18),
+                Background = new SolidColorBrush(Color.FromArgb(215, 14, 29, 25)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(95, 130, 185, 168)),
+                BorderThickness = new Thickness(1.1),
+                Padding = new Thickness(11, 0, 11, 0),
+                Margin = new Thickness(7, 0, 7, 0),
                 Child = volStack
             };
 
             _queueItemsStack = new StackPanel();
             _queuePopup = CreateFavouritesQueuePopup();
-            _queueListBtn = CreateVectorCircleButton(GeometryQueueList, "Open Saved Favourites & Active Session Panel", 33, false, true, out _);
+            _queueListBtn = CreateVectorCircleButton(GeometryQueueList, "Open Saved Favourites & Active Session Panel", 35, 15.0, false, true, out _);
             _queueListBtn.Click += (_, _) =>
             {
                 RegisterUserInteraction();
@@ -547,17 +556,17 @@ namespace AuraWave.Windows
                 _queuePopup.IsOpen = !_queuePopup.IsOpen;
             };
 
-            _settingsBtn = CreateVectorCircleButton(GeometryGearPetal, "Open AuraWave Settings Studio (Alt+S)", 33, false, true, out _);
+            _settingsBtn = CreateVectorCircleButton(GeometryGearPetal, "Open AuraWave Settings Studio (Alt+S)", 35, 15.5, false, true, out _);
             _settingsBtn.Click += (_, _) =>
             {
                 RegisterUserInteraction();
                 OpenSettingsRequested?.Invoke(this, EventArgs.Empty);
             };
 
-            _pinBtn = CreateVectorCircleButton(GeometryPushPin, "Toggle Pin (Keep music bar permanently visible)", 33, true, false, out _pinIconPath);
+            _pinBtn = CreateVectorCircleButton(GeometryPushPin, "Toggle Pin (Keep music bar permanently visible)", 35, 15.0, true, false, out _pinIconPath);
             _pinBtn.Click += OnPinButtonClick;
 
-            _closeHideBtn = CreateVectorCircleButton(GeometryCloseX, "Hide Music Bar to System Tray (Restore via Alt+P or Tray Icon)", 33, false, true, out _);
+            _closeHideBtn = CreateVectorCircleButton(GeometryCloseX, "Hide Music Bar to System Tray (Restore via Alt+P or Tray Icon)", 35, 14.0, false, true, out _);
             _closeHideBtn.Click += (_, _) =>
             {
                 _autoHideTimer.Stop();
@@ -583,7 +592,7 @@ namespace AuraWave.Windows
 
             var barGrid = new Grid
             {
-                Margin = new Thickness(22, 5, 16, 5),
+                Margin = new Thickness(22, 6, 18, 6),
                 VerticalAlignment = VerticalAlignment.Center
             };
             barGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -601,30 +610,29 @@ namespace AuraWave.Windows
             barGrid.Children.Add(_spectrumAndProgressPanel);
             barGrid.Children.Add(actionsRow);
 
-            // Inner ambient radial illumination layer matching image_737a35.jpg
             var innerCompositeGrid = new Grid();
             var ambientPlayGlow = new Ellipse
             {
-                Width = 220,
-                Height = 76,
+                Width = 230,
+                Height = 78,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 175, 0),
+                Margin = new Thickness(0, 0, 185, 0),
                 IsHitTestVisible = false,
                 Fill = new RadialGradientBrush(
-                    Color.FromArgb(52, 56, 232, 166),
+                    Color.FromArgb(56, 64, 242, 176),
                     Color.FromArgb(0, 8, 20, 17))
             };
             var ambientSpectrumGlow = new Ellipse
             {
-                Width = 240,
-                Height = 70,
+                Width = 250,
+                Height = 72,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(-60, 0, 0, -10),
+                Margin = new Thickness(-50, 0, 0, -10),
                 IsHitTestVisible = false,
                 Fill = new RadialGradientBrush(
-                    Color.FromArgb(40, 56, 232, 166),
+                    Color.FromArgb(44, 64, 242, 176),
                     Color.FromArgb(0, 8, 20, 17))
             };
             innerCompositeGrid.Children.Add(ambientSpectrumGlow);
@@ -636,63 +644,62 @@ namespace AuraWave.Windows
                 StartPoint = new Point(0, 0),
                 EndPoint = new Point(1, 1)
             };
-            innerSurfaceBrush.GradientStops.Add(new GradientStop(Color.FromArgb(248, 8, 17, 15), 0.0));
-            innerSurfaceBrush.GradientStops.Add(new GradientStop(Color.FromArgb(248, 12, 29, 24), 0.50));
-            innerSurfaceBrush.GradientStops.Add(new GradientStop(Color.FromArgb(248, 7, 15, 13), 1.0));
+            innerSurfaceBrush.GradientStops.Add(new GradientStop(Color.FromArgb(250, 7, 16, 14), 0.0));
+            innerSurfaceBrush.GradientStops.Add(new GradientStop(Color.FromArgb(250, 12, 28, 23), 0.50));
+            innerSurfaceBrush.GradientStops.Add(new GradientStop(Color.FromArgb(250, 6, 14, 12), 1.0));
 
             var innerBorderBrush = new LinearGradientBrush
             {
                 StartPoint = new Point(0, 0),
                 EndPoint = new Point(0, 1)
             };
-            innerBorderBrush.GradientStops.Add(new GradientStop(Color.FromArgb(165, 140, 245, 205), 0.0));
-            innerBorderBrush.GradientStops.Add(new GradientStop(Color.FromArgb(50, 56, 232, 166), 0.5));
-            innerBorderBrush.GradientStops.Add(new GradientStop(Color.FromArgb(120, 56, 232, 166), 1.0));
+            innerBorderBrush.GradientStops.Add(new GradientStop(Color.FromArgb(175, 150, 248, 210), 0.0));
+            innerBorderBrush.GradientStops.Add(new GradientStop(Color.FromArgb(55, 64, 242, 176), 0.5));
+            innerBorderBrush.GradientStops.Add(new GradientStop(Color.FromArgb(125, 64, 242, 176), 1.0));
 
             _innerCapsuleBorder = new Border
             {
-                CornerRadius = new CornerRadius(36),
+                CornerRadius = new CornerRadius(37),
                 Background = innerSurfaceBrush,
                 BorderBrush = innerBorderBrush,
-                BorderThickness = new Thickness(1.1),
+                BorderThickness = new Thickness(1.15),
                 Child = innerCompositeGrid
             };
 
-            // Outer 3D Frosted Glass Tube Rim with top & side specular reflection
             var outerRimBrush = new LinearGradientBrush
             {
                 StartPoint = new Point(0, 0),
                 EndPoint = new Point(1, 1)
             };
-            outerRimBrush.GradientStops.Add(new GradientStop(Color.FromArgb(200, 210, 250, 235), 0.0));
-            outerRimBrush.GradientStops.Add(new GradientStop(Color.FromArgb(95, 90, 195, 160), 0.35));
-            outerRimBrush.GradientStops.Add(new GradientStop(Color.FromArgb(75, 65, 165, 135), 0.70));
-            outerRimBrush.GradientStops.Add(new GradientStop(Color.FromArgb(175, 185, 245, 225), 1.0));
+            outerRimBrush.GradientStops.Add(new GradientStop(Color.FromArgb(210, 215, 252, 238), 0.0));
+            outerRimBrush.GradientStops.Add(new GradientStop(Color.FromArgb(100, 95, 200, 165), 0.35));
+            outerRimBrush.GradientStops.Add(new GradientStop(Color.FromArgb(80, 70, 170, 140), 0.70));
+            outerRimBrush.GradientStops.Add(new GradientStop(Color.FromArgb(185, 190, 248, 228), 1.0));
 
             var outerGlassSurface = new LinearGradientBrush
             {
                 StartPoint = new Point(0, 0),
                 EndPoint = new Point(0, 1)
             };
-            outerGlassSurface.GradientStops.Add(new GradientStop(Color.FromArgb(115, 36, 68, 58), 0.0));
-            outerGlassSurface.GradientStops.Add(new GradientStop(Color.FromArgb(85, 14, 30, 25), 0.5));
-            outerGlassSurface.GradientStops.Add(new GradientStop(Color.FromArgb(110, 24, 52, 44), 1.0));
+            outerGlassSurface.GradientStops.Add(new GradientStop(Color.FromArgb(120, 38, 72, 62), 0.0));
+            outerGlassSurface.GradientStops.Add(new GradientStop(Color.FromArgb(90, 14, 30, 25), 0.5));
+            outerGlassSurface.GradientStops.Add(new GradientStop(Color.FromArgb(115, 26, 56, 48), 1.0));
 
             _outerGlassBezel = new Border
             {
                 Margin = new Thickness(6),
                 Padding = new Thickness(4.5),
-                CornerRadius = new CornerRadius(41),
+                CornerRadius = new CornerRadius(42),
                 Background = outerGlassSurface,
                 BorderBrush = outerRimBrush,
                 BorderThickness = new Thickness(1.3),
                 Child = _innerCapsuleBorder,
                 Effect = new DropShadowEffect
                 {
-                    Color = Color.FromRgb(10, 75, 56),
+                    Color = Color.FromRgb(10, 80, 60),
                     BlurRadius = 20,
                     ShadowDepth = 0,
-                    Opacity = 0.50
+                    Opacity = 0.52
                 }
             };
 
@@ -750,8 +757,8 @@ namespace AuraWave.Windows
                 SystemParameters.WorkArea.Top,
                 SystemParameters.WorkArea.Width,
                 SystemParameters.WorkArea.Height,
-                _configService.Current.CompactBarMode ? 780 : 960,
-                88,
+                _configService.Current.CompactBarMode ? 820 : 1020,
+                90,
                 14);
 
             _configService.Current.NowPlayingGeometry = geom;
@@ -779,7 +786,6 @@ namespace AuraWave.Windows
             _artistText.Text = string.IsNullOrWhiteSpace(snap.Artist) ? "Play any song" : snap.Artist;
             _timelineText.Text = snap.FormattedTimeline;
 
-            // Decode real album artwork when exposed by Windows GSMTC
             if (snap.ArtworkBytes != null && snap.ArtworkBytes.Length > 0)
             {
                 if (!ReferenceEquals(snap.ArtworkBytes, _lastAppliedArtworkBytes))
@@ -808,7 +814,7 @@ namespace AuraWave.Windows
                 _artworkImageBrush.ImageSource = _fallbackSunsetBitmap;
             }
 
-            double trackW = _progressTrackBorder.Width > 0 ? _progressTrackBorder.Width : 192.0;
+            double trackW = _progressTrackBorder.Width > 0 ? _progressTrackBorder.Width : 204.0;
             _progressFillBorder.Width = Math.Clamp(trackW * snap.ProgressRatio, 4.0, trackW);
 
             bool playing = snap.PlaybackStatus == PlaybackState.Playing;
@@ -828,11 +834,14 @@ namespace AuraWave.Windows
             _nextBtn.Visibility = cfg.ShowPrevNextControls ? Visibility.Visible : Visibility.Collapsed;
         }
 
+        /// <summary>
+        /// Ultra-smooth slow rotation: 0.35 degrees per 16ms frame (~17.1 seconds per revolution).
+        /// </summary>
         public void StepDiscAnimation(bool isPlaying)
         {
             if (isPlaying && _configService.Current.EnableRotatingDisc)
             {
-                _discAngle = (_discAngle + 1.2) % 360.0;
+                _discAngle = (_discAngle + 0.35) % 360.0;
                 _discRotateTransform.Angle = _discAngle;
             }
         }
@@ -849,7 +858,7 @@ namespace AuraWave.Windows
         {
             var cfg = _configService.Current;
             var pal = ThemeManager.GetActivePalette(cfg);
-            Color cPrim = ThemeManager.ParseColor(pal.PrimaryHex, Color.FromRgb(56, 232, 166));
+            Color cPrim = ThemeManager.ParseColor(pal.PrimaryHex, Color.FromRgb(64, 242, 176));
 
             _progressFillBorder.Background = new SolidColorBrush(cPrim);
             _autoHideTimer.Interval = TimeSpan.FromSeconds(Math.Clamp(cfg.AutoHideTimeoutSeconds, 2, 60));
@@ -914,14 +923,14 @@ namespace AuraWave.Windows
         {
             bool pinned = _configService.Current.NowPlayingPinned;
             _pinIconPath.Fill = pinned
-                ? new SolidColorBrush(Colors.White)
-                : new SolidColorBrush(Color.FromRgb(145, 166, 158));
+                ? new SolidColorBrush(Color.FromRgb(64, 242, 176))
+                : new SolidColorBrush(Color.FromRgb(210, 228, 222));
             _pinBtn.BorderBrush = pinned
-                ? new SolidColorBrush(Color.FromArgb(145, 56, 232, 166))
-                : new SolidColorBrush(Color.FromArgb(55, 145, 166, 158));
+                ? new SolidColorBrush(Color.FromArgb(185, 64, 242, 176))
+                : new SolidColorBrush(Color.FromArgb(85, 130, 185, 168));
             _pinBtn.Background = pinned
-                ? new SolidColorBrush(Color.FromArgb(190, 20, 42, 36))
-                : new SolidColorBrush(Color.FromArgb(165, 14, 26, 23));
+                ? new SolidColorBrush(Color.FromArgb(225, 22, 48, 40))
+                : new SolidColorBrush(Color.FromArgb(210, 14, 29, 25));
             _pinBtn.ToolTip = pinned
                 ? "Pinned — Music Bar stays visible (Click to Unpin)"
                 : $"Unpinned — Auto-hides after {_configService.Current.AutoHideTimeoutSeconds}s of inactivity (Click to Pin)";
@@ -930,11 +939,11 @@ namespace AuraWave.Windows
         private void UpdateFavouriteButtonVisual(bool isFav)
         {
             _favIconPath.Fill = isFav
-                ? new SolidColorBrush(Color.FromRgb(56, 232, 166))
+                ? new SolidColorBrush(Color.FromRgb(64, 242, 176))
                 : Brushes.Transparent;
             _favIconPath.Stroke = isFav
-                ? new SolidColorBrush(Color.FromRgb(56, 232, 166))
-                : new SolidColorBrush(Color.FromRgb(226, 238, 233));
+                ? new SolidColorBrush(Color.FromRgb(64, 242, 176))
+                : new SolidColorBrush(Color.FromRgb(244, 250, 248));
         }
 
         private void RegisterUserInteraction()
@@ -1012,46 +1021,42 @@ namespace AuraWave.Windows
             g.Height = Height;
         }
 
-                private bool _isCircularArtMode = true;
-        private RectangleGeometry _artClipGeometry;
-
         private Grid CreateAlbumArtworkBox()
         {
-            _artClipGeometry = new RectangleGeometry(new Rect(0, 0, 54, 54), 27, 27);
+            _artClipGeometry = new RectangleGeometry(new Rect(0, 0, 56, 56), 28, 28);
 
             var container = new Grid
             {
-                Width = 54,
-                Height = 54,
+                Width = 56,
+                Height = 56,
                 Margin = new Thickness(2, 0, 4, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 RenderTransform = _discRotateTransform,
                 Cursor = Cursors.Hand,
-                ToolTip = "Click album art to toggle between Rounded Squircle and Full Circle style",
+                ToolTip = "Click album cover to switch between Rotating Vinyl Circle and Rounded Squircle",
                 Effect = new DropShadowEffect
                 {
                     Color = Colors.Black,
                     BlurRadius = 12,
                     ShadowDepth = 2,
-                    Opacity = 0.65
+                    Opacity = 0.70
                 }
             };
 
             var clippedSurface = new Grid
             {
-                Width = 54,
-                Height = 54,
+                Width = 56,
+                Height = 56,
                 Clip = _artClipGeometry
             };
 
             var imageRect = new Rectangle
             {
-                Width = 54,
-                Height = 54,
+                Width = 56,
+                Height = 56,
                 Fill = _artworkImageBrush
             };
 
-            // Soft inner vignette so edges blend into the dark capsule without a harsh square border
             var vignetteBrush = new RadialGradientBrush
             {
                 Center = new Point(0.5, 0.5),
@@ -1059,18 +1064,37 @@ namespace AuraWave.Windows
                 RadiusX = 0.72,
                 RadiusY = 0.72
             };
-            vignetteBrush.GradientStops.Add(new GradientStop(Color.FromArgb(0, 0, 0, 0), 0.55));
-            vignetteBrush.GradientStops.Add(new GradientStop(Color.FromArgb(95, 6, 14, 12), 1.0));
+            vignetteBrush.GradientStops.Add(new GradientStop(Color.FromArgb(0, 0, 0, 0), 0.58));
+            vignetteBrush.GradientStops.Add(new GradientStop(Color.FromArgb(105, 5, 12, 10), 1.0));
 
             var vignetteRect = new Rectangle
             {
-                Width = 54,
-                Height = 54,
+                Width = 56,
+                Height = 56,
                 Fill = vignetteBrush,
                 IsHitTestVisible = false
             };
 
+            // Subtle vinyl sheen arc so slow rotation is always perceptible
+            var sheenBrush = new LinearGradientBrush
+            {
+                StartPoint = new Point(0, 0),
+                EndPoint = new Point(1, 1)
+            };
+            sheenBrush.GradientStops.Add(new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.35));
+            sheenBrush.GradientStops.Add(new GradientStop(Color.FromArgb(28, 200, 255, 235), 0.50));
+            sheenBrush.GradientStops.Add(new GradientStop(Color.FromArgb(0, 255, 255, 255), 0.65));
+
+            var sheenRect = new Rectangle
+            {
+                Width = 56,
+                Height = 56,
+                Fill = sheenBrush,
+                IsHitTestVisible = false
+            };
+
             clippedSurface.Children.Add(imageRect);
+            clippedSurface.Children.Add(sheenRect);
             clippedSurface.Children.Add(vignetteRect);
             container.Children.Add(clippedSurface);
 
@@ -1078,7 +1102,7 @@ namespace AuraWave.Windows
             {
                 e.Handled = true;
                 _isCircularArtMode = !_isCircularArtMode;
-                double r = _isCircularArtMode ? 27.0 : 15.0;
+                double r = _isCircularArtMode ? 28.0 : 14.0;
                 _artClipGeometry.RadiusX = r;
                 _artClipGeometry.RadiusY = r;
             };
@@ -1086,10 +1110,6 @@ namespace AuraWave.Windows
             return container;
         }
 
-        /// <summary>
-        /// Synthesizes a 112x112 photographic sunset-clouds & twilight city-lights bitmap
-        /// matching image_737a35.jpg when no live session thumbnail is present.
-        /// </summary>
         private static BitmapSource GeneratePhotographicSunsetBitmap(int width, int height)
         {
             var wb = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgra32, null);
@@ -1102,7 +1122,6 @@ namespace AuraWave.Windows
                 {
                     double nx = (double)x / (width - 1);
 
-                    // Atmospheric cloud & sunset color gradient
                     double cloudWave = Math.Sin(nx * 6.5 + Math.Cos(ny * 5.0) * 1.4) * 0.5 + 0.5;
                     double sunDist = Math.Sqrt(Math.Pow(nx - 0.45, 2) + Math.Pow(ny - 0.54, 2));
                     double sunBloom = Math.Max(0.0, 1.0 - sunDist * 2.2);
@@ -1117,7 +1136,6 @@ namespace AuraWave.Windows
                     }
                     else
                     {
-                        // Distant twilight city & water horizon
                         double t = (ny - 0.68) / 0.32;
                         double bokeh = ((x * 37 + y * 13) % 29 == 0 && t < 0.55) ? 65.0 : 0.0;
                         r = 38 * (1.0 - t * 0.6) + bokeh;
@@ -1125,7 +1143,6 @@ namespace AuraWave.Windows
                         b = 48 * (1.0 - t * 0.5) + bokeh * 0.5;
                     }
 
-                    // Soft natural silhouette of person looking at horizon
                     double dxHead = (nx - 0.51) * 1.15;
                     double dyHead = (ny - 0.53);
                     double headDist = Math.Sqrt(dxHead * dxHead + dyHead * dyHead);
@@ -1160,24 +1177,24 @@ namespace AuraWave.Windows
         {
             var badge = new Grid
             {
-                Width = 14,
-                Height = 14,
+                Width = 15,
+                Height = 15,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 6, 0)
             };
 
             badge.Children.Add(new Ellipse
             {
-                Width = 14,
-                Height = 14,
-                Fill = new SolidColorBrush(Color.FromRgb(56, 232, 166))
+                Width = 15,
+                Height = 15,
+                Fill = new SolidColorBrush(Color.FromRgb(64, 242, 176))
             });
 
             badge.Children.Add(new System.Windows.Shapes.Path
             {
-                Data = Geometry.Parse("M 3.6,5.2 C 6.2,4.4 8.8,4.6 10.6,5.6 M 4.2,7.4 C 6.3,6.8 8.3,7.0 9.8,7.8 M 4.8,9.5 C 6.4,9.0 7.9,9.2 9.0,9.8"),
-                Stroke = new SolidColorBrush(Color.FromRgb(7, 18, 15)),
-                StrokeThickness = 1.25,
+                Data = Geometry.Parse("M 3.8,5.5 C 6.5,4.6 9.2,4.8 11.2,5.8 M 4.4,7.8 C 6.6,7.1 8.8,7.3 10.4,8.2 M 5.1,10.0 C 6.8,9.5 8.4,9.7 9.6,10.3"),
+                Stroke = new SolidColorBrush(Color.FromRgb(6, 18, 15)),
+                StrokeThickness = 1.35,
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round
             });
@@ -1189,11 +1206,11 @@ namespace AuraWave.Windows
         {
             var border = new Border
             {
-                Width = 320,
+                Width = 330,
                 MaxHeight = 280,
                 CornerRadius = new CornerRadius(16),
-                Background = new SolidColorBrush(Color.FromArgb(248, 8, 20, 17)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(56, 232, 166)),
+                Background = new SolidColorBrush(Color.FromArgb(250, 8, 20, 17)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(64, 242, 176)),
                 BorderThickness = new Thickness(1.2),
                 Padding = new Thickness(14),
                 Child = new ScrollViewer
@@ -1226,7 +1243,7 @@ namespace AuraWave.Windows
                 Text = "ACTIVE MEDIA SESSION",
                 FontSize = 10.5,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(Color.FromRgb(56, 232, 166)),
+                Foreground = new SolidColorBrush(Color.FromRgb(64, 242, 176)),
                 Margin = new Thickness(0, 0, 0, 4)
             });
 
@@ -1244,7 +1261,7 @@ namespace AuraWave.Windows
                 Text = "SAVED FAVOURITES (♥)",
                 FontSize = 10.5,
                 FontWeight = FontWeights.Bold,
-                Foreground = new SolidColorBrush(Color.FromRgb(56, 232, 166)),
+                Foreground = new SolidColorBrush(Color.FromRgb(64, 242, 176)),
                 Margin = new Thickness(0, 0, 0, 6)
             });
 
@@ -1255,7 +1272,7 @@ namespace AuraWave.Windows
                 {
                     Text = "No saved tracks yet. Click the ♥ button on the music bar to save tracks here.",
                     FontSize = 11.5,
-                    Foreground = new SolidColorBrush(Color.FromRgb(145, 166, 158)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(176, 198, 190)),
                     TextWrapping = TextWrapping.Wrap
                 });
                 return;
@@ -1281,7 +1298,7 @@ namespace AuraWave.Windows
                 {
                     Content = "\u2715",
                     Background = Brushes.Transparent,
-                    Foreground = new SolidColorBrush(Color.FromRgb(145, 166, 158)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(176, 198, 190)),
                     BorderThickness = new Thickness(0),
                     Cursor = Cursors.Hand,
                     Margin = new Thickness(6, 0, 0, 0)
@@ -1301,19 +1318,19 @@ namespace AuraWave.Windows
             }
         }
 
-        private static Button CreateVectorCircleButton(string pathMarkup, string tooltip, double size, bool filled, bool stroked, out System.Windows.Shapes.Path iconPath)
+        private static Button CreateVectorCircleButton(string pathMarkup, string tooltip, double size, double iconSize, bool filled, bool stroked, out System.Windows.Shapes.Path iconPath)
         {
             iconPath = new System.Windows.Shapes.Path
             {
                 Data = Geometry.Parse(pathMarkup),
-                Width = 14,
-                Height = 14,
+                Width = iconSize,
+                Height = iconSize,
                 Stretch = Stretch.Uniform,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                Fill = filled ? new SolidColorBrush(Color.FromRgb(235, 244, 240)) : Brushes.Transparent,
-                Stroke = stroked ? new SolidColorBrush(Color.FromRgb(226, 238, 233)) : null,
-                StrokeThickness = stroked ? 1.45 : 0.0,
+                Fill = filled ? new SolidColorBrush(Color.FromRgb(244, 250, 248)) : Brushes.Transparent,
+                Stroke = stroked ? new SolidColorBrush(Color.FromRgb(244, 250, 248)) : null,
+                StrokeThickness = stroked ? 1.85 : 0.0,
                 StrokeStartLineCap = PenLineCap.Round,
                 StrokeEndLineCap = PenLineCap.Round,
                 StrokeLineJoin = PenLineJoin.Round
@@ -1325,10 +1342,10 @@ namespace AuraWave.Windows
                 ToolTip = tooltip,
                 Width = size,
                 Height = size,
-                Margin = new Thickness(3.5, 0, 3.5, 0),
-                Background = new SolidColorBrush(Color.FromArgb(175, 16, 30, 26)),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(60, 145, 166, 158)),
-                BorderThickness = new Thickness(1),
+                Margin = new Thickness(4.5, 0, 4.5, 0),
+                Background = new SolidColorBrush(Color.FromArgb(215, 14, 29, 25)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(90, 130, 185, 168)),
+                BorderThickness = new Thickness(1.1),
                 Cursor = Cursors.Hand,
                 Template = CreateCircularButtonTemplate(size * 0.5)
             };
@@ -1338,6 +1355,7 @@ namespace AuraWave.Windows
         {
             var template = new ControlTemplate(typeof(Button));
             var border = new FrameworkElementFactory(typeof(Border));
+            border.Name = "CircleBorder";
             border.SetValue(Border.CornerRadiusProperty, new CornerRadius(radius));
             border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
             border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush") { RelativeSource = System.Windows.Data.RelativeSource.TemplatedParent });
@@ -1349,6 +1367,12 @@ namespace AuraWave.Windows
             border.AppendChild(presenter);
 
             template.VisualTree = border;
+
+            var hoverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            hoverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(Color.FromArgb(240, 24, 52, 44)), "CircleBorder"));
+            hoverTrigger.Setters.Add(new Setter(Border.BorderBrushProperty, new SolidColorBrush(Color.FromArgb(200, 64, 242, 176)), "CircleBorder"));
+            template.Triggers.Add(hoverTrigger);
+
             return template;
         }
 
@@ -1356,18 +1380,19 @@ namespace AuraWave.Windows
         {
             var template = new ControlTemplate(typeof(Button));
             var border = new FrameworkElementFactory(typeof(Border));
-            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(23));
+            border.Name = "PlayBorder";
+            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(24));
 
             var fillGrad = new LinearGradientBrush(
-                Color.FromRgb(72, 245, 180),
-                Color.FromRgb(42, 218, 150),
+                Color.FromRgb(82, 248, 186),
+                Color.FromRgb(38, 214, 148),
                 new Point(0, 0),
                 new Point(0, 1));
             fillGrad.Freeze();
 
             border.SetValue(Border.BackgroundProperty, fillGrad);
-            border.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(120, 252, 202)));
-            border.SetValue(Border.BorderThicknessProperty, new Thickness(1.0));
+            border.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(155, 255, 218)));
+            border.SetValue(Border.BorderThicknessProperty, new Thickness(1.2));
 
             var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
             presenter.SetValue(HorizontalAlignmentProperty, HorizontalAlignment.Center);
@@ -1375,6 +1400,11 @@ namespace AuraWave.Windows
             border.AppendChild(presenter);
 
             template.VisualTree = border;
+
+            var hoverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            hoverTrigger.Setters.Add(new Setter(Border.BorderBrushProperty, Brushes.White, "PlayBorder"));
+            template.Triggers.Add(hoverTrigger);
+
             return template;
         }
 
