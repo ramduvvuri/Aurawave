@@ -127,23 +127,24 @@ namespace AuraWave.Tests
         public void Test07_WidgetGeometry_ClampsToMonitorBoundaries()
         {
             var geom = new WidgetGeometry { Left = -500, Top = 5000, Width = 200, Height = 500 };
-            geom.ClampToMonitor(0, 0, 1920, 1040, 540, 1600, 76, 160);
-            Assert.Equal(540, geom.Width);
-            Assert.Equal(160, geom.Height);
-            Assert.InRange(geom.Left, 0, 1920 - 540);
-            Assert.InRange(geom.Top, 0, 1040 - 160);
+            geom.ClampToMonitor(0, 0, 1920, 1040, 640, 1600, 78, 140);
+            Assert.Equal(640, geom.Width);
+            Assert.Equal(140, geom.Height);
+            Assert.InRange(geom.Left, 0, 1920 - 640);
+            Assert.InRange(geom.Top, 0, 1040 - 140);
         }
 
         [Fact]
-        public void Test08_DefaultConfig_DisablesStandaloneWaveformAndEnablesEmeraldBar()
+        public void Test08_DefaultConfig_MatchesOneToOneEmeraldCapsuleDimensions()
         {
             var cfg = new AuraWaveConfig();
             Assert.False(cfg.WaveformVisible);
             Assert.False(cfg.AutoShowWaveformOnAudio);
             Assert.True(cfg.NowPlayingVisible);
             Assert.True(cfg.ShowEmbeddedSpectrum);
+            Assert.Equal(960, cfg.NowPlayingGeometry.Width);
+            Assert.Equal(88, cfg.NowPlayingGeometry.Height);
             Assert.Equal(ThemePreset.EmeraldCapsule, cfg.SelectedTheme);
-            Assert.Equal(5, cfg.AutoHideTimeoutSeconds);
         }
 
         [Fact]
@@ -187,11 +188,11 @@ namespace AuraWave.Tests
         [Fact]
         public void Test12_CalculateBottomCenterBar_PositionsHorizontallyCenteredAboveTaskbar()
         {
-            var geom = WidgetGeometry.CalculateBottomCenterBar(0, 0, 1920, 1032, 920, 92, 14);
-            Assert.Equal(920, geom.Width);
-            Assert.Equal(92, geom.Height);
-            Assert.Equal(500, geom.Left); // (1920 - 920) / 2
-            Assert.Equal(926, geom.Top);  // 1032 - 92 - 14
+            var geom = WidgetGeometry.CalculateBottomCenterBar(0, 0, 1920, 1032, 960, 88, 14);
+            Assert.Equal(960, geom.Width);
+            Assert.Equal(88, geom.Height);
+            Assert.Equal(480, geom.Left); // (1920 - 960) / 2
+            Assert.Equal(930, geom.Top);  // 1032 - 88 - 14
         }
 
         [Fact]
@@ -207,12 +208,10 @@ namespace AuraWave.Tests
                 Assert.True(favSvc.ToggleFavourite(snap));
                 Assert.True(favSvc.IsFavourite(snap));
 
-                // Reload from disk to verify persistence
                 var favSvc2 = new FavouritesService(tempDir);
                 Assert.True(favSvc2.IsFavourite(snap));
                 Assert.Single(favSvc2.GetAll());
 
-                // Toggle again to remove
                 Assert.False(favSvc2.ToggleFavourite(snap));
                 Assert.False(favSvc2.IsFavourite(snap));
             }

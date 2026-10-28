@@ -9,19 +9,19 @@ namespace AuraWave.Configuration
 {
     public sealed class AuraWaveConfig
     {
-        public int ConfigSchemaVersion { get; set; } = 2;
+        public int ConfigSchemaVersion { get; set; } = 3;
 
-        // Appearance (Defaults to Emerald Capsule)
+        // Appearance (Defaults to 1:1 Emerald Capsule)
         public ThemePreset SelectedTheme { get; set; } = ThemePreset.EmeraldCapsule;
-        public string CustomPrimaryHex { get; set; } = "#35D6A0";
+        public string CustomPrimaryHex { get; set; } = "#2EE59D";
         public string CustomSecondaryHex { get; set; } = "#42E5B0";
         public string CustomAccentHex { get; set; } = "#087F62";
         public string CustomPeakHex { get; set; } = "#A7F3D0";
-        public double VisualizerIntensity { get; set; } = 1.05;
-        public double GlowIntensity { get; set; } = 0.45;
+        public double VisualizerIntensity { get; set; } = 1.15;
+        public double GlowIntensity { get; set; } = 0.50;
         public double UiScale { get; set; } = 1.0;
         public double WaveformThickness { get; set; } = 2.5;
-        public double NowPlayingSurfaceOpacity { get; set; } = 0.94;
+        public double NowPlayingSurfaceOpacity { get; set; } = 0.95;
         public bool EnableNowPlayingGlass { get; set; } = true;
         public double AnimationIntensity { get; set; } = 1.0;
         public bool EnableParticles { get; set; } = false;
@@ -32,11 +32,11 @@ namespace AuraWave.Configuration
         public VisualizerType SelectedVisualizer { get; set; } = VisualizerType.LiquidSpectrum;
         public int FrequencyBandCount { get; set; } = 32;
         public bool SymmetricSpectrum { get; set; } = false;
-        public double AudioSensitivity { get; set; } = 1.30;
-        public double SmoothingFactor { get; set; } = 0.65;
+        public double AudioSensitivity { get; set; } = 1.35;
+        public double SmoothingFactor { get; set; } = 0.62;
         public bool ShowPeakIndicators { get; set; } = false;
         public double PeakDecayRate { get; set; } = 0.18;
-        public double BassResponseBoost { get; set; } = 1.20;
+        public double BassResponseBoost { get; set; } = 1.25;
         public int ParticleCount { get; set; } = 32;
 
         // Audio
@@ -55,7 +55,7 @@ namespace AuraWave.Configuration
         public bool RememberPlacement { get; set; } = true;
         public EditableComponent SelectedEditComponent { get; set; } = EditableComponent.NowPlaying;
 
-        // Standalone Waveform State (DISABLED by default per target specification)
+        // Standalone Waveform State (DISABLED by default)
         public bool WaveformVisible { get; set; } = false;
         public bool WaveformPinned { get; set; } = false;
         public WidgetGeometry WaveformGeometry { get; set; } = new WidgetGeometry
@@ -66,18 +66,18 @@ namespace AuraWave.Configuration
             Height = 120
         };
 
-        // Primary Integrated Emerald Music Bar State
+        // Primary 1:1 Emerald Capsule State (960 x 88)
         public bool NowPlayingVisible { get; set; } = true;
         public bool NowPlayingPinned { get; set; } = true;
         public WidgetGeometry NowPlayingGeometry { get; set; } = new WidgetGeometry
         {
             Left = -1,
             Top = -1,
-            Width = 920,
-            Height = 92
+            Width = 960,
+            Height = 88
         };
         public bool ShowAlbumArt { get; set; } = true;
-        public bool EnableRotatingDisc { get; set; } = true;
+        public bool EnableRotatingDisc { get; set; } = false;
         public bool ShowTrackTitle { get; set; } = true;
         public bool ShowArtistName { get; set; } = true;
         public bool ShowEmbeddedSpectrum { get; set; } = true;
@@ -120,12 +120,12 @@ namespace AuraWave.Configuration
             AudioStopInactivityDelaySeconds = Math.Clamp(AudioStopInactivityDelaySeconds, 2, 120);
 
             WaveformGeometry ??= new WidgetGeometry { Left = -1, Top = -1, Width = 760, Height = 120 };
-            NowPlayingGeometry ??= new WidgetGeometry { Left = -1, Top = -1, Width = 920, Height = 92 };
+            NowPlayingGeometry ??= new WidgetGeometry { Left = -1, Top = -1, Width = 960, Height = 88 };
 
             WaveformGeometry.Width = Math.Clamp(WaveformGeometry.Width, 240, 3840);
             WaveformGeometry.Height = Math.Clamp(WaveformGeometry.Height, 60, 900);
-            NowPlayingGeometry.Width = Math.Clamp(NowPlayingGeometry.Width, 540, 1600);
-            NowPlayingGeometry.Height = Math.Clamp(NowPlayingGeometry.Height, 76, 160);
+            NowPlayingGeometry.Width = Math.Clamp(NowPlayingGeometry.Width, 640, 1600);
+            NowPlayingGeometry.Height = Math.Clamp(NowPlayingGeometry.Height, 78, 140);
         }
     }
 
@@ -179,15 +179,14 @@ namespace AuraWave.Configuration
                     if (loaded == null)
                         throw new InvalidDataException("Deserialized configuration was null.");
 
-                    // Migrate v1 configs (which had blue standalone waveform enabled) to v2 Emerald Single Bar
-                    if (loaded.ConfigSchemaVersion < 2)
+                    if (loaded.ConfigSchemaVersion < 3)
                     {
-                        loaded.ConfigSchemaVersion = 2;
+                        loaded.ConfigSchemaVersion = 3;
                         loaded.WaveformVisible = false;
                         loaded.AutoShowWaveformOnAudio = false;
                         loaded.SelectedTheme = ThemePreset.EmeraldCapsule;
                         loaded.NowPlayingVisible = true;
-                        loaded.NowPlayingGeometry = new WidgetGeometry { Left = -1, Top = -1, Width = 920, Height = 92 };
+                        loaded.NowPlayingGeometry = new WidgetGeometry { Left = -1, Top = -1, Width = 960, Height = 88 };
                     }
 
                     loaded.ValidateAndClamp();

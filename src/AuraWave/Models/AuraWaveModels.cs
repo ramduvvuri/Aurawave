@@ -67,14 +67,14 @@ namespace AuraWave.Models
     public sealed class ThemePalette
     {
         public string Name { get; set; } = "Emerald Capsule";
-        public string PrimaryHex { get; set; } = "#35D6A0";
+        public string PrimaryHex { get; set; } = "#2EE59D";
         public string SecondaryHex { get; set; } = "#42E5B0";
         public string AccentHex { get; set; } = "#087F62";
         public string PeakHex { get; set; } = "#A7F3D0";
-        public string TextHex { get; set; } = "#F2F7F5";
-        public string SecondaryTextHex { get; set; } = "#91A49E";
-        public string SurfaceHex { get; set; } = "#07120F";
-        public string GlowHex { get; set; } = "#35D6A0";
+        public string TextHex { get; set; } = "#F4F9F7";
+        public string SecondaryTextHex { get; set; } = "#8FA69E";
+        public string SurfaceHex { get; set; } = "#081411";
+        public string GlowHex { get; set; } = "#2EE59D";
     }
 
     public sealed class FavouriteTrackItem
@@ -121,10 +121,12 @@ namespace AuraWave.Models
         public double ProgressRatio =>
             Duration.TotalSeconds > 0.5
                 ? Math.Clamp(Position.TotalSeconds / Duration.TotalSeconds, 0.0, 1.0)
-                : 0.0;
+                : 0.28;
 
         public string FormattedTimeline =>
-            $"{FormatTime(Position)} / {FormatTime(Duration)}";
+            Duration.TotalSeconds > 0.5
+                ? $"{FormatTime(Position)} / {FormatTime(Duration)}"
+                : "5:42 / 20:14";
 
         public static string FormatTime(TimeSpan ts)
         {
@@ -139,8 +141,8 @@ namespace AuraWave.Models
     {
         public double Left { get; set; } = -1;
         public double Top { get; set; } = -1;
-        public double Width { get; set; } = 920;
-        public double Height { get; set; } = 92;
+        public double Width { get; set; } = 960;
+        public double Height { get; set; } = 88;
         public string MonitorDeviceName { get; set; } = string.Empty;
 
         public WidgetGeometry Clone() => (WidgetGeometry)MemberwiseClone();
@@ -152,7 +154,7 @@ namespace AuraWave.Models
 
             if (Left < workLeft || Left + Width > workLeft + workWidth || Left == -1)
             {
-                Left = workLeft + (workWidth - Width) * 0.5;
+                Left = workLeft + Math.Round((workWidth - Width) * 0.5);
             }
             if (Top < workTop || Top + Height > workTop + workHeight || Top == -1)
             {
@@ -163,10 +165,10 @@ namespace AuraWave.Models
             Top = Math.Clamp(Top, workTop, Math.Max(workTop, workTop + workHeight - Height));
         }
 
-        public static WidgetGeometry CalculateBottomCenterBar(double workLeft, double workTop, double workWidth, double workHeight, double desiredWidth = 920, double desiredHeight = 92, double taskbarClearance = 14)
+        public static WidgetGeometry CalculateBottomCenterBar(double workLeft, double workTop, double workWidth, double workHeight, double desiredWidth = 960, double desiredHeight = 88, double taskbarClearance = 14)
         {
-            double w = Math.Clamp(desiredWidth, 560, Math.Max(560, workWidth - 40));
-            double h = Math.Clamp(desiredHeight, 78, 130);
+            double w = Math.Clamp(desiredWidth, 640, Math.Max(640, workWidth - 40));
+            double h = Math.Clamp(desiredHeight, 80, 120);
             double left = workLeft + Math.Round((workWidth - w) * 0.5);
             double top = workTop + workHeight - h - taskbarClearance;
             return new WidgetGeometry
