@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Windows;
 using System.Windows.Interop;
@@ -36,14 +37,24 @@ namespace AuraWave
         {
             base.OnStartup(e);
 
-            _singleInstanceMutex = new Mutex(true, "Local\\AuraWaveNext_SingleInstance_Mutex", out bool createdNew);
-            if (!createdNew)
+            // Terminate any older running AuraWave instance so the new UI always launches
+            try
             {
-                Shutdown(0);
-                return;
+                int currentPid = Process.GetCurrentProcess().Id;
+                foreach (var proc in Process.GetProcessesByName("AuraWave"))
+                {
+                    if (proc.Id != currentPid)
+                    {
+                        try { proc.Kill(); proc.WaitForExit(1000); } catch { }
+                    }
+                    proc.Dispose();
+                }
             }
+            catch { }
 
-            AppLogger.Info("AuraWave Emerald Floating Music Bar starting up.");
+            _singleInstanceMutex = new Mutex(true, "Local\\AuraWaveNext_SingleInstance_Mutex", out _);
+
+            AppLogger.Info("AuraWave 1:1 Emerald Floating Music Bar starting up.");
 
             _configService = new ConfigurationService();
             var cfg = _configService.Load();
@@ -89,7 +100,6 @@ namespace AuraWave
             _trayController.ApplyChangesRequested += (_, _) => ApplyConfigurationToWindows();
             _trayController.QuitRequested += (_, _) => CleanShutdown();
 
-            // Show ONLY the primary integrated Emerald Music Bar by default
             _nowPlayingWindow.Show();
             if (cfg.WaveformVisible)
             {
@@ -248,8 +258,8 @@ namespace AuraWave
             }
             else
             {
-                _nowPlayingWindow.Width = Math.Clamp(_nowPlayingWindow.Width * scaleMultiplier, 540, 1600);
-                _nowPlayingWindow.Height = Math.Clamp(_nowPlayingWindow.Height * scaleMultiplier, 76, 160);
+                _nowPlayingWindow.Width = Math.Clamp(_nowPlayingWindow.Width * scaleMultiplier, 640, 1600);
+                _nowPlayingWindow.Height = Math.Clamp(_nowPlayingWindow.Height * scaleMultiplier, 78, 140);
             }
             _configService.Save();
         }
@@ -289,18 +299,18 @@ namespace AuraWave
             uint alt = NativeWindowInterop.MOD_ALT | NativeWindowInterop.MOD_NOREPEAT;
             uint ctrlAlt = NativeWindowInterop.MOD_CONTROL | NativeWindowInterop.MOD_ALT | NativeWindowInterop.MOD_NOREPEAT;
 
-            NativeWindowInterop.RegisterHotKey(hwnd, 9001, alt, 0x43); // Alt + C
-            NativeWindowInterop.RegisterHotKey(hwnd, 9002, alt, 0x41); // Alt + A
-            NativeWindowInterop.RegisterHotKey(hwnd, 9003, alt, 0x53); // Alt + S
-            NativeWindowInterop.RegisterHotKey(hwnd, 9004, alt, 0x4D); // Alt + M
-            NativeWindowInterop.RegisterHotKey(hwnd, 9005, alt, 0x57); // Alt + W
-            NativeWindowInterop.RegisterHotKey(hwnd, 9006, alt, 0x50); // Alt + P
-            NativeWindowInterop.RegisterHotKey(hwnd, 9007, ctrlAlt, 0x45); // Ctrl + Alt + E
-            NativeWindowInterop.RegisterHotKey(hwnd, 9008, ctrlAlt, 0xBB); // Ctrl + Alt + Plus
-            NativeWindowInterop.RegisterHotKey(hwnd, 9009, ctrlAlt, 0x6B); // Ctrl + Alt + NumpadPlus
-            NativeWindowInterop.RegisterHotKey(hwnd, 9010, ctrlAlt, 0xBD); // Ctrl + Alt + Minus
-            NativeWindowInterop.RegisterHotKey(hwnd, 9011, ctrlAlt, 0x6D); // Ctrl + Alt + NumpadMinus
-            NativeWindowInterop.RegisterHotKey(hwnd, 9012, alt, 0x51); // Alt + Q
+            NativeWindowInterop.RegisterHotKey(hwnd, 9001, alt, 0x43);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9002, alt, 0x41);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9003, alt, 0x53);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9004, alt, 0x4D);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9005, alt, 0x57);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9006, alt, 0x50);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9007, ctrlAlt, 0x45);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9008, ctrlAlt, 0xBB);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9009, ctrlAlt, 0x6B);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9010, ctrlAlt, 0xBD);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9011, ctrlAlt, 0x6D);
+            NativeWindowInterop.RegisterHotKey(hwnd, 9012, alt, 0x51);
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
